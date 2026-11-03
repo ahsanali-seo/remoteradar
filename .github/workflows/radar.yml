@@ -1,0 +1,103 @@
+# Ahsan RemoteRadar: runs by itself on GitHub's free computers and publishes the locked page.
+name: RemoteRadar
+
+on:
+  schedule:
+    - cron: "0 4,9,14,18 * * *"   # full runs: 09:00, 14:00, 19:00, 23:00 Pakistan time
+    - cron: "30 * * * *"          # light check every hour (international, company boards, Gmail alerts)
+  workflow_dispatch:              # the "Run workflow" button
+    inputs:
+      mode:
+        description: "full = all sources, light = international + boards + Gmail alerts"
+        type: choice
+        options: [full, light]
+        default: full
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write                  # only to keep the schedule switched on
+
+concurrency:                      # never two runs at the same time (they share one database)
+  group: remoteradar
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: Asia/Karachi
+      RADAR_CLOUD: "true"
+      HEADLESS: "true"
+      USE_SYSTEM_CHROME: "false"
+      RADAR_AI: gemini
+      GEMINI_CHECK_MODEL: gemini-flash-lite-latest
+      GEMINI_WRITE_MODEL: gemini-flash-latest
+      RADAR_GMAIL: seowithahsanali@gmail.com
+      GMAIL_APPLY_LABEL: "true"
+      DAILY_DRAFT_CAP: "20"
+      MAX_PAGE_VIEWS_PER_PLATFORM: "40"
+      MAX_JOB_AGE_DAYS: "7"
+      LINKEDIN_LOGIN: "false"
+      SOCIAL_LOGIN: "false"
+      INTERNATIONAL: "true"
+      WEBSITE_SEARCH_DAILY: "40"
+      PHONE_SEARCH_DAILY: "40"
+      SUMMARY_DRAFT: "false"
+      PORTFOLIO_URL: https://www.ahsanseo.com
+      MIN_SALARY_PKR: "100000"
+      NOTIFY_SCORE: "75"
+      # Secrets: repository Settings → Secrets and variables → Actions
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      DATA_REPO: ${{ secrets.DATA_REPO }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+      CV_LINK: ${{ secrets.CV_LINK }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install browser
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run RemoteRadar
+        run: |
+          MODE="${{ inputs.mode || 'full' }}"
+          if [ "${{ github.event.schedule }}" = "30 * * * *" ]; then MODE=light; fi
+          python -m radar.cli cloud-run --mode "$MODE" --site site
+
+      - uses: actions/configure-pages@v5
+        if: always() && hashFiles('site/index.html') != ''
+
+      - uses: actions/upload-pages-artifact@v3
+        if: always() && hashFiles('site/index.html') != ''
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+        if: always() && hashFiles('site/index.html') != ''
+
+      - name: Keep the schedule switched on
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method PUT "/repos/${{ github.repository }}/actions/workflows/radar.yml/enable"
