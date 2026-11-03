@@ -3,8 +3,7 @@ name: RemoteRadar
 
 on:
   schedule:
-    - cron: "0 4,9,14,18 * * *"   # full runs: 09:00, 14:00, 19:00, 23:00 Pakistan time
-    - cron: "30 * * * *"          # light check every hour (international, company boards, Gmail alerts)
+    - cron: "0 5,16 * * *"        # twice a day: 10:00 and 21:00 Pakistan time (GitHub may start a little late)
   workflow_dispatch:              # the "Run workflow" button
     inputs:
       mode:
@@ -25,7 +24,7 @@ concurrency:                      # never two runs at the same time (they share 
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 80
     environment:
       name: github-pages
@@ -52,6 +51,7 @@ jobs:
       PORTFOLIO_URL: https://www.ahsanseo.com
       MIN_SALARY_PKR: "100000"
       NOTIFY_SCORE: "75"
+      SKIP_SOURCES: indeed        # Indeed blocks automated browsers; its jobs come via Indeed email alerts
       # Secrets: repository Settings → Secrets and variables → Actions
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       DATA_REPO: ${{ secrets.DATA_REPO }}
@@ -80,7 +80,6 @@ jobs:
       - name: Run RemoteRadar
         run: |
           MODE="${{ inputs.mode || 'full' }}"
-          if [ "${{ github.event.schedule }}" = "30 * * * *" ]; then MODE=light; fi
           python -m radar.cli cloud-run --mode "$MODE" --site site
 
       - uses: actions/configure-pages@v5
