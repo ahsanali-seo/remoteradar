@@ -75,6 +75,10 @@ class Settings:
     # Browser without a window. Needed on a server; on the Mac the window stays visible.
     headless: bool = _b("HEADLESS", _b("RADAR_CLOUD", False))
     data_repo: str = os.environ.get("DATA_REPO", "")
+    # Sources switched off by setting, e.g. SKIP_SOURCES=indeed (Indeed blocks automated browsers;
+    # its jobs come in through Indeed job-alert emails in the Gmail "Job Alerts" label instead).
+    skip_sources: tuple = tuple(x.strip().lower() for x in os.environ.get("SKIP_SOURCES", "").split(",")
+                                if x.strip())
 
     # No-login mode (default). LinkedIn Jobs are read from LinkedIn's public guest pages,
     # so no account is ever used. Facebook/Instagram need a login, so they stay off unless

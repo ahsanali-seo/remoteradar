@@ -231,11 +231,11 @@ function render(v){
     const t=D.today, w=D.week;
     const top=D.jobs.filter(j=>(j.match_score||0)>=70&&["New","Drafted"].includes(j.status)&&!j.budget_flag).sort(sortJobs).slice(0,6);
     const iv=D.jobs.filter(j=>j.status==="Interview"&&j.interview_at).sort((a,b)=>a.interview_at.localeCompare(b.interview_at));
-    m.innerHTML=topbar("Overview","Runs by itself in the cloud, about 09:00, 14:00, 19:00 and 23:00, plus a light check every hour")+`
-      <div class="today"><div><b>${t.new_jobs}</b><span>New jobs today</span></div><div><b>${t.duplicates}</b><span>Duplicates skipped</span></div>
+    m.innerHTML=topbar("Overview","Runs by itself in the cloud twice a day, about 10:00 and 21:00 Pakistan time")+`
+      <div class="today"><div><b>${t.new_jobs}</b><span>New jobs today</span></div><div><b>${t.duplicates}</b><span title="Listings already seen in an earlier run, re-checked and skipped. Not shown again.">Already seen (skipped)</span></div>
       <div><b>${t.drafts}<small class="hint">/${t.draft_cap}</small></b><span>Drafts today</span></div><div><b>${readyJobs().length}</b><span>Ready to send</span></div>
       <div><b>${t.followups_due}</b><span>Follow-ups due</span></div></div>
-      <section><h3>Sources</h3><div class="agents">${D.agents.filter(a=>a.platform!=="quickadd"&&!(a.status==="paused"&&(a.detail||"").startsWith("Off"))).map(a=>`<div class="agent ${esc(a.status)}">
+      <section><h3>Sources</h3><div class="agents">${D.agents.filter(a=>a.platform!=="quickadd"&&!(a.status==="paused"&&(a.detail||"").startsWith("Off: no-login"))).map(a=>`<div class="agent ${esc(a.status)}">
         <div class="n">${esc(a.label)} <span class="pill ${esc(a.health)}">${esc(a.health)}</span></div>
         <div class="d">${esc(a.detail||a.status)}</div><div class="m">${a.last_success?"Last success "+ago(a.last_success):"No success yet"}${a.enabled?"":" · switched off"}</div></div>`).join("")}</div></section>
       <div class="grid2">

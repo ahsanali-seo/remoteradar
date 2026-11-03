@@ -395,6 +395,9 @@ def run(only: list[str] | None = None) -> RunStats:
         for sc in sources:
             if only and sc.platform not in only:
                 continue
+            if sc.platform in settings.skip_sources:
+                db.set_agent(sc.platform, "paused", "Off: its jobs come from your Gmail job alerts")
+                continue
             ok, why = db.platform_available(sc.platform)
             if not ok:
                 db.log(sc.platform, f"Skipped: {why}")
