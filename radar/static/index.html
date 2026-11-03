@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ahsan RemoteRadar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070A; --card:#0E1218; --card-2:#151B24; --line:#1E2632;
+  --teal:#2DD4BF; --teal-dim:rgba(45,212,191,.14); --cyan:#22D3EE; --violet:#A78BFA; --green:#4ADE80;
+  --grad:linear-gradient(135deg,#2DD4BF 0%,#22D3EE 55%,#818CF8 100%);
+  --amber:#F59E0B; --amber-dim:rgba(245,158,11,.15);
+  --red:#EF4444; --red-dim:rgba(239,68,68,.15);
+  --text:#F8FAFC; --slate:#9AA6B8; --slate-2:#5F6B7D;
+  --r-lg:14px; --r-sm:8px;
+  font-family:"Onest",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+a{color:var(--teal)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1320px;margin:0 auto;padding:24px 28px 60px}
+header{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+.brand h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
+.brand small{display:block;color:var(--slate);font-size:13px;font-weight:400}
+.logo{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--teal);position:relative;overflow:hidden;flex:none}
+.logo::before{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0 75%,rgba(20,184,166,.75) 100%);animation:sweep 3.2s linear infinite}
+.logo::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:var(--teal)}
+.runstate{color:var(--slate);font-size:14px}
+.btn{border:0;border-radius:999px;padding:10px 20px;font-weight:600;cursor:pointer;background:var(--teal);color:#04201D;text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);padding:8px 16px}
+.today{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:28px;overflow:hidden}
+.today div{padding:16px 20px;border-right:1px solid var(--line)}
+.today div:last-child{border-right:0}
+.today b{display:block;font-size:30px;font-weight:600;line-height:1.1}
+.today span{color:var(--slate);font-size:13px}
+h2{font-size:17px;font-weight:600;margin:0 0 14px}
+section{margin-bottom:32px}
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:14px}
+.agent{background:var(--card);border-radius:var(--r-lg);padding:16px;display:grid;grid-template-columns:56px 1fr auto;gap:4px 14px;align-items:center;border:1px solid transparent;transition:border-color .3s}
+.agent.blocked{border-color:var(--red);animation:shake .5s ease 1}
+.agent.scraping{border-color:rgba(20,184,166,.45)}
+.agent .name{font-weight:600}
+.agent .detail{color:var(--slate);font-size:13px;grid-column:2/4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent .meta{grid-column:1/4;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--slate-2);margin-top:8px;padding-top:10px;border-top:1px solid var(--line)}
+.agent .meta .grow{margin-right:auto}
+.pill{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+.pill.OK{background:var(--teal-dim);color:var(--teal)}
+.pill.Warning{background:var(--amber-dim);color:var(--amber)}
+.pill.Blocked{background:var(--red-dim);color:var(--red)}
+.linkbtn{background:none;border:0;color:var(--teal);cursor:pointer;padding:0;font-size:12.5px}
+.icon{grid-row:1/3;width:52px;height:52px;border-radius:50%;position:relative;background:var(--card-2);border:1.5px solid var(--line);overflow:hidden}
+.icon::before,.icon::after{content:"";position:absolute}
+.icon .ring{position:absolute;inset:12px;border-radius:50%;border:1px solid var(--line)}
+.scraping .icon{border-color:var(--teal)}
+.scraping .icon::before{inset:0;background:conic-gradient(from 0deg,transparent 0 70%,rgba(20,184,166,.85) 100%);animation:sweep 1.8s linear infinite}
+.scraping .icon .ring{border-color:rgba(20,184,166,.35)}
+.thinking .icon{border-color:var(--teal)}
+.thinking .icon::after{left:50%;top:50%;width:12px;height:12px;margin:-6px;border-radius:50%;background:var(--teal);animation:pulse 1.2s ease-in-out infinite}
+.done .icon{border-color:var(--teal)}
+.done .icon::after{left:19px;top:12px;width:10px;height:19px;border:solid var(--teal);border-width:0 3px 3px 0;transform:rotate(45deg)}
+.blocked .icon,.paused .icon{border-color:var(--red);background:var(--red-dim)}
+.blocked .icon::after,.paused .icon::after{left:50%;top:50%;width:20px;height:3px;margin:-1.5px -10px;background:var(--red);border-radius:2px}
+.error .icon{border-color:var(--amber);background:var(--amber-dim)}
+.error .icon::after{left:50%;top:12px;width:3px;height:15px;margin-left:-1.5px;background:var(--amber);border-radius:2px;box-shadow:0 20px 0 0 var(--amber)}
+.switch{position:relative;width:38px;height:22px;flex:none}
+.switch input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;z-index:1}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .2s;pointer-events:none}
+.switch span::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--text);transition:transform .2s}
+.switch input:checked+span{background:var(--teal)}
+.switch input:checked+span::after{transform:translateX(16px)}
+.switch input:focus-visible+span{outline:2px solid var(--teal);outline-offset:2px}
+.split{display:grid;grid-template-columns:1.6fr 1fr;gap:20px}
+.panel{background:var(--card);border-radius:var(--r-lg);padding:18px}
+.feed{height:300px;overflow-y:auto;font-size:14px;margin:0;padding:0;list-style:none}
+.feed li{display:grid;grid-template-columns:46px 1fr;gap:10px;padding:6px 0;border-bottom:1px solid rgba(34,52,90,.6)}
+.feed time{color:var(--slate-2);font-size:13px}
+.feed .src{color:var(--teal);font-weight:500}
+.feed .warn .msg{color:var(--amber)}
+.feed .error .msg{color:var(--red)}
+.feed li.fresh{animation:flash 1.4s ease}
+.feed .none{display:block;color:var(--slate);border:0}
+textarea{width:100%;min-height:170px;resize:vertical;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;line-height:1.45}
+.hint{color:var(--slate);font-size:13px;margin:0 0 10px}
+.qa-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+.qa-row .note{color:var(--slate);font-size:13px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.tools h2{margin:0 auto 0 0}
+.tools select,.tools input{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px}
+.tools input{width:220px}
+.tablewrap{overflow-x:auto;background:var(--card);border-radius:var(--r-lg)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:960px}
+th{text-align:left;font-weight:500;color:var(--slate);font-size:13px;padding:12px 14px;border-bottom:1px solid var(--line)}
+td{padding:10px 14px;border-bottom:1px solid rgba(34,52,90,.6);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.role{font-weight:500;max-width:260px}
+td.role small{display:block;color:var(--slate-2);font-weight:400;font-size:12.5px}
+.reader select,td select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13px}
+td select[data-s="Drafted"]{border-color:var(--teal);color:var(--teal)}
+td select[data-s="Sent"],td select[data-s^="Follow"]{border-color:var(--amber);color:var(--amber)}
+td select[data-s="Replied"],td select[data-s="Interview"]{background:var(--teal-dim);border-color:var(--teal)}
+td select[data-s="Rejected"]{color:var(--slate-2)}
+.empty{padding:40px;text-align:center;color:var(--slate)}
+
+/* ---------- app shell with left menu ---------- */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.side{background:#0E1930;border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.side .brand{margin:0 6px 18px}
+.side .brand h1{font-size:17px}
+.side .compose{width:100%;margin:0 0 14px;text-align:center}
+.nav-h{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate-2);margin:14px 10px 6px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--slate);text-decoration:none;font-size:14.5px}
+.nav a:hover{background:var(--card);color:var(--text)}
+.nav a.on{background:var(--teal-dim);color:var(--teal);font-weight:600}
+.nav a .n{margin-left:auto;font-size:12px;font-weight:600;background:var(--teal);color:#04201D;border-radius:999px;padding:0 7px;min-width:20px;text-align:center}
+.nav a .n:empty{display:none}
+.nav svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.main{min-width:0}
+.view{display:none}.view.on{display:block}
+/* ---------- mail ---------- */
+.mailbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.mailbar h2{margin:0 auto 0 0}
+.mailbar input[type=search]{background:var(--card);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 12px;width:300px}
+.adv{display:none;background:var(--card);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:12px;gap:12px 18px;flex-wrap:wrap;align-items:end}
+.adv.on{display:flex}
+.adv label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--slate)}
+.adv label.chk{flex-direction:row;align-items:center;gap:6px;color:var(--text)}
+.adv input:not([type=checkbox]),.adv select,.field input{background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:7px 10px;color:var(--text)}
+.mail{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:16px;height:calc(100vh - 150px);min-height:480px}
+.mlist{background:var(--card);border-radius:var(--r-lg);overflow-y:auto}
+.mitem{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid rgba(34,52,90,.6);padding:12px 14px;cursor:pointer;color:var(--text)}
+.mitem:hover{background:var(--card-2)}
+.mitem.on{background:var(--card-2);box-shadow:inset 3px 0 0 var(--teal)}
+.mitem .top{display:flex;gap:8px;align-items:baseline}
+.mitem .who{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mitem.unread .who,.mitem.unread .subj{font-weight:700}
+.mitem.unread .who::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);margin-right:7px;vertical-align:1px}
+.mitem time{margin-left:auto;color:var(--slate-2);font-size:12.5px;flex:none}
+.mitem .subj{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mitem .snip{color:var(--slate-2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--teal-dim);color:var(--teal);margin-top:4px}
+.chip.amber{background:var(--amber-dim);color:var(--amber)}
+.more{display:block;width:100%;padding:12px;background:none;border:0;color:var(--teal);cursor:pointer}
+.reader{background:var(--card);border-radius:var(--r-lg);padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.reader h3{font-size:19px;margin:0;line-height:1.3}
+.rmeta{color:var(--slate);font-size:13.5px}
+.rmeta b{color:var(--text);font-weight:600}
+.ractions{display:flex;gap:8px;flex-wrap:wrap}
+.ractions .btn{padding:7px 14px;font-size:13.5px}
+.btn.danger{background:transparent;color:var(--red);border:1px solid rgba(239,68,68,.5);padding:7px 14px}
+.rbody{background:#fff;border-radius:var(--r-sm);min-height:300px;flex:1}
+.rbody iframe{width:100%;height:100%;min-height:420px;border:0;border-radius:var(--r-sm)}
+.rtext{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:16px;font-size:14.5px;line-height:1.55;flex:1}
+.atts{display:flex;gap:8px;flex-wrap:wrap}
+.atts a{font-size:13px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;text-decoration:none}
+.field{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:8px}
+.field span{color:var(--slate);font-size:13.5px}
+.editor textarea{min-height:320px;flex:1}
+.notice{background:var(--amber-dim);color:var(--amber);border-radius:var(--r-sm);padding:9px 12px;font-size:13.5px}
+.okmsg{background:var(--teal-dim);color:var(--teal);border-radius:var(--r-sm);padding:9px 12px;font-size:13.5px}
+.placeholder{color:var(--slate);margin:auto;text-align:center;max-width:320px}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;max-width:420px}
+dialog::backdrop{background:rgba(3,8,20,.7)}
+dialog p{margin:0 0 18px;color:var(--slate)}
+dialog .row{display:flex;gap:10px;justify-content:flex-end}
+@media (max-width:1100px){.mail{grid-template-columns:1fr;height:auto}.mlist{max-height:46vh}}
+@media (max-width:760px){.app{grid-template-columns:1fr}.side{position:static;height:auto}.nav{display:flex;flex-wrap:wrap;gap:4px}.nav-h{width:100%}}
+
+
+.drawer{position:fixed;top:0;right:0;width:min(620px,100vw);height:100vh;background:var(--card);border-left:1px solid var(--line);box-shadow:-20px 0 40px rgba(0,0,0,.35);transform:translateX(105%);transition:transform .25s ease;z-index:20;display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.drawer .dhead{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 14px;border-bottom:1px solid var(--line)}
+.drawer .dhead h3{margin:0;font-size:19px;line-height:1.3}
+.drawer .dhead small{display:block;color:var(--slate);font-size:13.5px;margin-top:4px}
+.drawer .x{margin-left:auto;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:18px;flex:none}
+.drawer .dbody{padding:16px 22px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;flex:1}
+.drawer .desc{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;font-size:14px;line-height:1.55;max-height:46vh;overflow-y:auto}
+.box{border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.box h4{margin:0;font-size:14px}
+.box .row2{display:flex;gap:8px;flex-wrap:wrap}
+.box input{flex:1;min-width:180px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;color:var(--text)}
+.found{display:flex;gap:6px;flex-wrap:wrap}
+.found button{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:3px 10px;font-size:13px;cursor:pointer}
+.found button.on{border-color:var(--teal);color:var(--teal)}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:rgba(24,40,72,.55)}
+.viewbtn{background:none;border:1px solid var(--teal);color:var(--teal);border-radius:999px;padding:3px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+
+
+:root{--pink:#F472B6;--pink-dim:rgba(244,114,182,.15)}
+.email-found{color:var(--pink)!important}
+.pinknote{color:var(--pink);font-size:13px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px}
+.facts div{font-size:14px}.facts b{display:block;color:var(--slate);font-weight:500;font-size:12.5px}
+.summary p{margin:0 0 10px;font-size:14.5px;line-height:1.6}
+.score{display:inline-block;min-width:38px;text-align:center;font-weight:700;font-size:13px;border-radius:999px;padding:2px 8px}
+.score.hi{background:var(--teal-dim);color:var(--teal)}.score.mid{background:var(--amber-dim);color:var(--amber)}.score.lo{background:var(--card-2);color:var(--slate)}
+details.orig summary{cursor:pointer;color:var(--slate);font-size:13.5px}
+.report{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.report div{background:var(--card);border-radius:var(--r-lg);padding:14px 16px}
+.report b{display:block;font-size:24px}.report span{color:var(--slate);font-size:13px}
+.minilist{list-style:none;margin:0;padding:0}.minilist li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(34,52,90,.6);font-size:14px}
+.minilist li button{margin-left:auto}
+
+/* ---------- v4 look: black base, light and colour ---------- */
+body{background:radial-gradient(1200px 600px at 85% -10%,rgba(34,211,238,.10),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(129,140,248,.08),transparent 60%),var(--bg);background-attachment:fixed}
+.side{background:linear-gradient(180deg,#080B10,#06080C);border-right:1px solid #141A23}
+.btn{background:var(--grad);color:#031417;box-shadow:0 6px 20px -8px rgba(34,211,238,.55);transition:transform .15s,box-shadow .15s,filter .15s}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 26px -10px rgba(34,211,238,.7);filter:brightness(1.05)}
+.btn.ghost{background:rgba(255,255,255,.02);box-shadow:none;color:var(--text);border:1px solid var(--line)}
+.btn.ghost:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan)}
+.btn.danger{box-shadow:none}
+.nav a.on{background:linear-gradient(90deg,rgba(45,212,191,.16),rgba(34,211,238,.04));color:var(--cyan);box-shadow:inset 2px 0 0 var(--cyan)}
+.nav a .n{background:var(--grad)}
+.agent,.panel,.mlist,.reader,.tablewrap,.report div{border:1px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 12px 30px -18px rgba(0,0,0,.8)}
+.agent:hover,.panel:hover,.report div:hover{border-color:#2A3443}
+.today{background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border-color:var(--line)}
+.today b,.report b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand h1{letter-spacing:-.02em}
+h2{letter-spacing:-.01em}
+.drawer{background:linear-gradient(180deg,#0E1218,#0A0D12);border-left:1px solid #1E2632}
+.facts{background:#0A0E14}
+.chip{background:rgba(34,211,238,.12);color:var(--cyan)}
+.score.hi{background:rgba(74,222,128,.14);color:var(--green)}
+details.orig summary{display:inline-flex;align-items:center;gap:8px;list-style:none;cursor:pointer;color:var(--cyan);font-weight:600;font-size:14px;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);border-radius:999px;padding:6px 14px}
+details.orig summary::-webkit-details-marker{display:none}
+details.orig summary::before{content:"▸";transition:transform .15s}
+details.orig[open] summary::before{transform:rotate(90deg)}
+.tag{display:inline-block;white-space:nowrap;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:1px}
+.tag.low{background:var(--amber-dim);color:var(--amber)}
+.btn.wa{background:linear-gradient(135deg,#25D366,#128C7E);color:#04150c;box-shadow:0 6px 20px -8px rgba(37,211,102,.6)}
+.src{display:inline-flex;align-items:center;gap:6px}
+.src::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c,var(--slate))}
+tbody tr.low td{opacity:.62}
+
+@keyframes sweep{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{transform:scale(.7);opacity:.6}50%{transform:scale(1.25);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@keyframes flash{from{background:var(--teal-dim)}to{background:transparent}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media (max-width:900px){.split{grid-template-columns:1fr}.today{grid-template-columns:repeat(2,1fr)}.today div{border-bottom:1px solid var(--line)}.wrap{padding:18px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side" aria-label="Menu">
+  <div class="brand"><div class="logo" aria-hidden="true"></div><div><h1>RemoteRadar</h1><small>Ahsan Ali · job agent</small></div></div>
+  <button class="btn compose" id="composeBtn">✎ Compose</button>
+  <nav class="nav">
+    <a href="#overview" data-nav="overview"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12 L12 3"/><path d="M12 12 L18 18"/></svg><span>Overview</span></a><a href="#jobs" data-nav="jobs"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg><span>Local jobs</span></a><a href="#intl" data-nav="intl"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg><span>International jobs</span></a>
+    <div class="nav-h">Mail</div>
+    <a href="#inbox" data-nav="inbox"><svg viewBox="0 0 24 24"><path d="M3 13h5l2 3h4l2-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/></svg><span>Inbox</span><span class="n" id="n-inbox"></span></a><a href="#replies" data-nav="replies"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v4"/></svg><span>Job replies</span><span class="n" id="n-replies"></span></a><a href="#ready" data-nav="ready"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg><span>Ready to send</span><span class="n" id="n-ready"></span></a>
+    <a href="#drafts" data-nav="drafts"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg><span>All drafts</span></a><a href="#sent" data-nav="sent"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg><span>Sent</span></a><a href="#starred" data-nav="starred"><svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg><span>Starred</span></a><a href="#alerts" data-nav="alerts"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21h4"/></svg><span>Job alerts</span></a>
+    <a href="#important" data-nav="important"><svg viewBox="0 0 24 24"><path d="M4 5h11l5 7-5 7H4l4-7z"/></svg><span>Important</span></a><a href="#spam" data-nav="spam"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 16.5v.5"/></svg><span>Spam</span></a><a href="#trash" data-nav="trash"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg><span>Trash</span></a>
+  </nav>
+  <button class="btn ghost" id="logoutBtn" style="margin-top:auto;display:none">Log out</button>
+</aside>
+<main class="main">
+<div class="wrap">
+  <header>
+    <div class="brand"><div><h1 id="viewTitle">Overview</h1><small>Remote SEO jobs · Lahore, Islamabad and worldwide</small></div></div>
+    <span class="runstate" id="runstate">Connecting…</span>
+    <button class="btn" id="runBtn">Run now</button>
+  </header>
+
+  <div class="view on" id="v-overview">
+  <div class="today" aria-label="Today at a glance">
+    <div><b id="t-new">0</b><span>New jobs today</span></div>
+    <div><b id="t-dup">0</b><span>Duplicates skipped</span></div>
+    <div><b id="t-drafts">0</b><span>Drafts created</span></div>
+    <div><b id="t-fu">0</b><span>Follow-ups due</span></div>
+    <div><b id="t-cost">$0.00</b><span>AI cost today</span></div>
+  </div>
+
+  <section>
+    <h2>Agents</h2>
+    <div class="agents" id="agents"></div>
+  </section>
+
+  <section>
+    <h2>This week</h2>
+    <div class="report" id="report"></div>
+    <div class="split">
+      <div class="panel"><h2>Best matches waiting for you</h2><ul class="minilist" id="topMatches"></ul></div>
+      <div class="panel"><h2>Upcoming interviews</h2><ul class="minilist" id="upcoming"></ul>
+        <h2 style="margin-top:18px">Do-not-show companies</h2><ul class="minilist" id="blockedList"></ul></div>
+    </div>
+  </section>
+
+  <section class="split">
+    <div class="panel">
+      <h2>Live activity</h2>
+      <ul class="feed" id="feed" aria-live="polite"></ul>
+    </div>
+    <div class="panel">
+      <h2>Quick-add a job</h2>
+      <p class="hint">Paste a WhatsApp job message or any job link. It goes through the same checks and gets a draft if it has an email.</p>
+      <textarea id="qa" placeholder="We are hiring an SEO Executive (remote) for our Lahore agency. Send your CV to …"></textarea>
+      <div class="qa-row"><button class="btn" id="qaBtn">Add job</button><span class="note" id="qaNote"></span></div>
+    </div>
+  </section>
+
+  </div>
+  <div class="view" id="v-jobs">
+  <section>
+    <div class="tools">
+      <h2>Job tracker</h2>
+      <input id="q" type="search" placeholder="Search company or role" aria-label="Search jobs">
+      <select id="fStatus" aria-label="Filter by status"><option value="">All statuses</option></select>
+      <select id="fSource" aria-label="Filter by source"><option value="">All sources</option></select>
+      <select id="fElig" aria-label="Who can apply" style="display:none"><option value="">Everyone eligible</option><option value="sure">Only sure: Worldwide / Pakistan</option></select>
+      <a class="btn ghost" href="/api/export.csv">Export CSV</a>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Match</th><th>Found</th><th>Source</th><th>Company</th><th>Role</th><th id="thCity">City</th><th>Email</th><th>Link</th><th>Status</th><th></th></tr></thead>
+        <tbody id="jobs"></tbody>
+      </table>
+    </div>
+  </section>
+  </div>
+
+  <div class="view" id="v-mail">
+    <div class="mailbar">
+      <h2 id="mailTitle">Inbox</h2>
+      <input type="search" id="mq" placeholder="Search mail (Gmail search works too)" aria-label="Search mail">
+      <button class="btn ghost" id="advBtn" aria-expanded="false">Advanced</button>
+      <button class="btn" id="sendAllBtn" style="display:none">Send all</button>
+      <button class="btn ghost" id="refreshBtn">Refresh</button>
+    </div>
+    <div class="adv" id="adv">
+      <label>From<input id="aFrom" placeholder="name or email"></label>
+      <label>Has the words<input id="aWords" placeholder="e.g. interview"></label>
+      <label>Date<select id="aDays"><option value="0">Any time</option><option value="1">Last 24 hours</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 3 months</option></select></label>
+      <label class="chk"><input type="checkbox" id="aUnread"> Unread only</label>
+      <label class="chk"><input type="checkbox" id="aAtt"> Has attachment</label>
+      <button class="btn" id="advGo">Search</button>
+      <button class="btn ghost" id="advClear">Clear</button>
+    </div>
+    <div class="mail">
+      <div class="mlist" id="mlist" aria-label="Messages"></div>
+      <div class="reader" id="reader"><p class="placeholder">Choose an email on the left to read it here.</p></div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+<aside class="drawer" id="drawer" aria-label="Job details"></aside>
+<dialog id="confirmDlg"><h3 style="margin:0 0 8px">Send this email?</h3><p id="confirmText"></p>
+  <div class="row"><button class="btn ghost" value="no" id="cNo">Cancel</button><button class="btn" id="cYes">Send now</button></div></dialog>
+
+<script>
+const STATUSES=["New","Drafted","Sent","Follow-up 1","Follow-up 2","Replied","Interview","Rejected"];
+const SOURCES={linkedin:"LinkedIn",facebook:"Facebook",instagram:"Instagram",indeed:"Indeed",rozee:"Rozee & boards",careers:"Career pages",gmail:"Gmail alerts",quickadd:"Quick-add",intl:"International",remotive:"Remotive",remoteok:"RemoteOK",wwr:"We Work Remotely",himalayas:"Himalayas",jobicy:"Jobicy",workingnomads:"Working Nomads",ats:"Company careers",linkedin_ww:"LinkedIn Pakistan remote"};
+const STATUS_WORD={idle:"Waiting",scraping:"Scanning",thinking:"Thinking",done:"Done",blocked:"Blocked",paused:"Paused",error:"Problem"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:"";
+let JOBS=[];
+
+const fmtTime=iso=>iso?new Date(iso).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",hourCycle:"h23"}):"";
+const fmtAgo=iso=>{if(!iso)return"never";const m=Math.round((Date.now()-new Date(iso))/60000);if(m<1)return"just now";if(m<60)return m+" min ago";const h=Math.round(m/60);if(h<24)return h+" h ago";return Math.round(h/24)+" d ago"};
+const fmtDay=iso=>iso?new Date(iso).toLocaleDateString([],{day:"numeric",month:"short"}):"";
+
+function renderState(s){
+  const t=s.today;
+  $("#t-new").textContent=t.new_jobs;
+  $("#t-dup").textContent=t.duplicates;
+  $("#t-drafts").textContent=`${t.drafts}/${t.draft_cap}`;
+  $("#t-fu").textContent=t.followups_due;
+  $("#t-cost").textContent="$"+Number(t.ai_cost).toFixed(2);
+  $("#runstate").textContent=s.running?"Run in progress":"Idle";
+  $("#runBtn").disabled=s.running;
+  $("#agents").innerHTML=s.agents.map(a=>{
+    const st=a.enabled?a.status:"paused";
+    const shot=a.screenshot?` · <a href="/screenshots/${encodeURIComponent(a.screenshot)}" target="_blank" rel="noopener">screenshot</a>`:"";
+    return `<div class="agent ${st}">
+      <div class="icon" aria-hidden="true"><div class="ring"></div></div>
+      <div class="name">${esc(a.label)}</div>
+      <label class="switch" title="${a.enabled?"Pause":"Resume"} ${esc(a.label)}">
+        <input type="checkbox" ${a.enabled?"checked":""} data-toggle="${a.platform}" aria-label="Scrape ${esc(a.label)}"><span></span>
+      </label>
+      <div class="detail">${esc(STATUS_WORD[st]||st)}${a.detail?" · "+esc(a.detail):""}</div>
+      <div class="meta"><span class="grow">Last success ${fmtAgo(a.last_success)}${shot}</span>
+        ${st==="blocked"?`<button class="linkbtn" data-clear="${a.platform}">Clear block</button>`:""}
+        <span class="pill ${esc(a.health)}">${esc(a.health)}</span></div>
+    </div>`}).join("");
+}
+
+function addLog(e,fresh){
+  const feed=$("#feed");
+  feed.querySelector(".none")?.remove();
+  const li=document.createElement("li");
+  li.className=e.level+(fresh?" fresh":"");
+  li.innerHTML=`<time>${fmtTime(e.ts)}</time><div class="msg">${e.platform?`<span class="src">${esc(SOURCES[e.platform]||e.platform)}</span> `:""}${esc(e.message)}</div>`;
+  feed.prepend(li);
+  while(feed.children.length>200)feed.lastChild.remove();
+}
+
+function renderJobs(){
+  const q=$("#q").value.toLowerCase(), fs=$("#fStatus").value, fsrc=$("#fSource").value;
+  const fe=$("#fElig").value;
+  const rows0=JOBS.filter(j=>(!fe||REGION!=="international"||["worldwide","asia"].includes(j.eligibility))&&(!fs||j.status===fs)&&(!fsrc||j.source===fsrc)&&(!q||`${j.company} ${j.title}`.toLowerCase().includes(q)));
+  const rows=rows0.slice().sort((a,b)=>(a.budget_flag?1:0)-(b.budget_flag?1:0)||(b.match_score||0)-(a.match_score||0)||String(b.created_at).localeCompare(String(a.created_at)));
+  if(!rows.length){$("#jobs").innerHTML=`<tr><td colspan="10" class="empty">${JOBS.length?"No jobs match these filters.":(REGION==="international"?"No international jobs yet. Press Run now; this list fills as jobs open to Pakistan are found.":"No jobs yet. Press Run now, or paste a job into Quick-add.")}</td></tr>`;return}
+  $("#jobs").innerHTML=rows.map(j=>`<tr class="${j.budget_flag?"low":""}">
+    <td>${scoreChip(j.match_score)}</td>
+    <td>${fmtDay(j.created_at)}</td>
+    <td>${srcTag(j.source)}</td>
+    <td>${esc(j.company||j.author||"—")}</td>
+    <td class="role">${esc(j.title||"SEO role")}${j.budget_flag?'<span class="tag low">Low budget</span>':""}${j.phone?' <span title="WhatsApp number available">💬</span>':""}${j.notes&&j.notes.startsWith("Reposted")?' <span class="tag" style="background:rgba(167,139,250,.15);color:var(--violet)">Reposted</span>':""}${j.stage_reason&&j.stage!=="drafted"?`<small>${esc(j.stage_reason)}</small>`:""}</td>
+    <td>${REGION==="international"?eligChip(j.eligibility):esc(j.city||"")}</td>
+    <td>${j.contact_email?`<span class="${["website","search"].includes(j.email_source)?"email-found":""}" title="${["website","search"].includes(j.email_source)?"Found on their website":"Written in the job post"}">${esc(j.contact_email)}</span>`:'<span style="color:var(--slate-2)">Apply on site</span>'}</td>
+    <td>${safeUrl(j.url)?`<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">Open</a>`:""}</td>
+    <td><select data-job="${j.id}" data-s="${esc(j.status)}" aria-label="Status for ${esc(j.company)}">${STATUSES.map(s=>`<option ${s===j.status?"selected":""}>${s}</option>`).join("")}</select></td>
+    <td><button class="viewbtn" data-view="${j.id}">${j.contact_email&&!j.draft_id?"Apply by email":"View & apply"}</button></td>
+  </tr>`).join("");
+}
+
+let REGION="local";
+const SRC_COLOR={linkedin:"#38BDF8",indeed:"#818CF8",rozee:"#F472B6",careers:"#FBBF24",gmail:"#F87171",quickadd:"#A3E635",remotive:"#2DD4BF",remoteok:"#FB923C",wwr:"#E879F9",himalayas:"#60A5FA",jobicy:"#34D399",workingnomads:"#FACC15",ats:"#C084FC",linkedin_ww:"#38BDF8"};
+const srcTag=k=>`<span class="src" style="--c:${SRC_COLOR[k]||"#94A3B8"}">${esc(SOURCES[k]||k)}</span>`;
+const scoreChip=v=>v?`<span class="score ${v>=75?"hi":v>=50?"mid":"lo"}" title="How well this job fits your CV">${v}</span>`:'<span class="score lo">–</span>';
+const eligChip=e=>{const m={worldwide:["🟢 Worldwide","var(--green)"],asia:["Pakistan / Asia","var(--cyan)"],unclear:["Check","var(--amber)"]}[e]||["Check","var(--amber)"];return `<span style="color:${m[1]};font-weight:600;white-space:nowrap">${m[0]}</span>`};
+const ELIG={worldwide:"Open worldwide",asia:"Asia / Pakistan allowed",unclear:"Location not stated, check before applying",restricted:"Not open to Pakistan",local:"Pakistan"};
+async function loadJobs(){JOBS=await getJSON("/api/jobs?region="+REGION);renderJobs()}
+let jobTimer;const reloadJobsSoon=()=>{clearTimeout(jobTimer);jobTimer=setTimeout(loadJobs,800)};
+async function post(url,body,method="POST"){const r=await fetch(url,{method,headers:{"Content-Type":"application/json","X-Radar":"1"},body:body?JSON.stringify(body):undefined});if(r.status===401){location.href="/login";throw new Error("Please log in")}if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||r.statusText)}return r.json()}
+
+document.addEventListener("change",async e=>{
+  const t=e.target;
+  if(t.dataset.toggle){await post(`/api/platforms/${t.dataset.toggle}/toggle`)}
+  if(t.dataset.job){t.dataset.s=t.value;await post(`/api/jobs/${t.dataset.job}/status`,{status:t.value});reloadJobsSoon()}
+});
+document.addEventListener("click",async e=>{const c=e.target.dataset?.clear;if(c)await post(`/api/platforms/${c}/clear`)});
+$("#runBtn").onclick=async()=>{try{$("#runBtn").disabled=true;await post("/api/run")}catch(err){$("#runstate").textContent=err.message}};
+$("#qaBtn").onclick=async()=>{
+  const text=$("#qa").value.trim();if(!text)return;
+  try{await post("/api/quickadd",{text});$("#qa").value="";$("#qaNote").textContent="Added. Watch the activity feed."}
+  catch(err){$("#qaNote").textContent=err.message}
+};
+["#q","#fStatus","#fSource","#fElig"].forEach(s=>$(s).addEventListener("input",renderJobs));
+STATUSES.forEach(s=>$("#fStatus").insertAdjacentHTML("beforeend",`<option>${s}</option>`));
+Object.entries(SOURCES).forEach(([k,v])=>$("#fSource").insertAdjacentHTML("beforeend",`<option value="${k}">${v}</option>`));
+
+(async()=>{
+  renderState(await (await fetch("/api/state")).json());
+  const evs=await (await fetch("/api/events/recent")).json();
+  if(!evs.length)$("#feed").innerHTML='<li class="none">Nothing yet. Activity appears here while a run is going.</li>';
+  evs.forEach(e=>addLog(e,false));
+  loadJobs();
+  const es=new EventSource("/api/stream");
+  es.addEventListener("state",m=>renderState(JSON.parse(m.data)));
+  es.addEventListener("log",m=>{addLog(JSON.parse(m.data),true);reloadJobsSoon()});
+  es.onerror=()=>{$("#runstate").textContent="Reconnecting…"};
+})();
+/* ================= menu + mail ================= */
+const MAILF={inbox:"Inbox",replies:"Job replies",ready:"Ready to send",drafts:"All drafts",sent:"Sent",starred:"Starred",alerts:"Job alerts",important:"Important",spam:"Spam",trash:"Trash"};
+let FOLDER="inbox",NEXT=null,ITEMS=[],SEARCH={},CUR=null;
+const getJSON=async u=>{const r=await fetch(u);if(r.status===401){location.href="/login";throw new Error("Please log in")}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||r.statusText);return j};
+const fmtMail=iso=>{if(!iso)return"";const d=new Date(iso),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString([],{day:"numeric",month:"short"})};
+
+function route(){
+  const key=(location.hash||"#overview").slice(1);
+  document.getElementById("drawer")?.classList.remove("on");
+  document.querySelectorAll("[data-nav]").forEach(a=>a.classList.toggle("on",a.dataset.nav===key));
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  if(MAILF[key]){FOLDER=key;$("#v-mail").classList.add("on");$("#mailTitle").textContent=MAILF[key];$("#viewTitle").textContent="Mail";loadMail(true)}
+  else if(key==="jobs"||key==="intl"){REGION=key==="intl"?"international":"local";$("#fElig").style.display=key==="intl"?"":"none";$("#thCity").textContent=key==="intl"?"Who can apply":"City";$("#v-jobs").classList.add("on");$("#viewTitle").textContent=key==="intl"?"International jobs":"Local jobs";document.querySelector("#v-jobs h2").textContent=key==="intl"?"International remote jobs":"Lahore & Islamabad jobs";loadJobs()}
+  else{$("#v-overview").classList.add("on");$("#viewTitle").textContent="Overview"}
+  $("#sendAllBtn").style.display="none";
+}
+window.addEventListener("hashchange",route);
+
+function searchParams(){const p=new URLSearchParams();Object.entries(SEARCH).forEach(([k,v])=>{if(v)p.set(k,v)});return p}
+async function loadMail(reset){
+  const list=$("#mlist");
+  if(reset){ITEMS=[];NEXT=null;list.innerHTML='<p class="placeholder" style="padding:30px">Loading…</p>';$("#reader").innerHTML='<p class="placeholder">Choose an email on the left to read it here.</p>'}
+  const p=searchParams();if(NEXT&&!reset)p.set("page",NEXT);
+  try{
+    const r=await getJSON(`/api/mail/list/${FOLDER}?`+p);
+    ITEMS=reset?r.items:ITEMS.concat(r.items);NEXT=r.next;renderList();
+  }catch(e){list.innerHTML=`<div style="padding:18px"><div class="notice">${esc(e.message)}</div></div>`}
+}
+function renderList(){
+  const list=$("#mlist");
+  const ready=ITEMS.filter(i=>i.draft_id&&i.job);
+  $("#sendAllBtn").style.display=FOLDER==="ready"&&ready.length?"":"none";
+  $("#sendAllBtn").textContent=`Send all (${ready.length})`;
+  if(!ITEMS.length){list.innerHTML=`<p class="placeholder" style="padding:30px">${FOLDER==="replies"?"No replies from companies yet. They show up here as soon as one arrives.":FOLDER==="ready"?"No drafts waiting. New ones appear after each run.":"Nothing here."}</p>`;return}
+  list.innerHTML=ITEMS.map((m,i)=>`<button class="mitem ${m.unread?"unread":""} ${CUR&&CUR.idx===i?"on":""}" data-i="${i}">
+    <div class="top"><span class="who">${esc(FOLDER==="sent"||m.draft_id?("To: "+(m.to||"")):m.from_name)}</span><time>${fmtMail(m.date)}</time></div>
+    <div class="subj">${m.starred?"★ ":""}${esc(m.subject)}${m.attachment?" 📎":""}</div>
+    <div class="snip">${esc(m.snippet)}</div>
+    ${m.job?`<span class="chip ${m.job.status==="Replied"||m.job.status==="Interview"?"amber":""}">${esc(m.job.title)}${m.job.company?" · "+esc(m.job.company):""} · ${esc(m.job.status)}</span>`:""}
+  </button>`).join("")+(NEXT?'<button class="more" id="moreBtn">Load more</button>':"");
+}
+$("#mlist").addEventListener("click",e=>{
+  if(e.target.id==="moreBtn")return loadMail(false);
+  const b=e.target.closest(".mitem");if(!b)return;
+  const m=ITEMS[+b.dataset.i];CUR={idx:+b.dataset.i,item:m};renderList();
+  m.draft_id?openDraft(m.draft_id):openMessage(m.id);
+});
+
+function frameFor(html,showImages){
+  const csp=`default-src 'none'; style-src 'unsafe-inline' *; img-src data: cid: ${showImages?"https: http:":""}; font-src *;`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><base target="_blank"><style>body{font-family:-apple-system,Segoe UI,sans-serif;font-size:14.5px;color:#111;margin:16px;word-wrap:break-word}img{max-width:100%;height:auto}</style></head><body>${html}</body></html>`;
+}
+async function openMessage(id,showImages=false){
+  const rd=$("#reader");rd.innerHTML='<p class="placeholder">Opening…</p>';
+  try{
+    const m=await getJSON(`/api/mail/message/${id}`);CUR.msg=m;
+    if(m.unread){post(`/api/mail/message/${id}/action`,{action:"read"}).then(()=>{m.unread=false;ITEMS[CUR.idx].unread=false;renderList();loadCounts()}).catch(()=>{})}
+    const hasRemote=/<img[^>]+src=["']?https?:/i.test(m.html||"");
+    rd.innerHTML=`<h3>${esc(m.subject)}</h3>
+      <div class="rmeta"><b>${esc(m.from_name)}</b> &lt;${esc(m.from)}&gt;<br>To ${esc(m.to)}${m.cc?" · Cc "+esc(m.cc):""} · ${m.date?new Date(m.date).toLocaleString():""}</div>
+      ${m.job?`<div><span class="chip">${esc(m.job.title)}${m.job.company?" · "+esc(m.job.company):""} · ${esc(m.job.status)}</span> <select data-job="${m.job.id}" data-s="${esc(m.job.status)}" aria-label="Job status">${STATUSES.map(s=>`<option ${s===m.job.status?"selected":""}>${s}</option>`).join("")}</select></div>`:""}
+      <div class="ractions">
+        <button class="btn" data-act="reply">Reply</button>
+        <button class="btn ghost" data-act="forward">Forward</button>
+        <button class="btn ghost" data-act="${m.starred?"unstar":"star"}">${m.starred?"★ Unstar":"☆ Star"}</button>
+        <button class="btn ghost" data-act="unread">Mark unread</button>
+        ${m.labels.includes("INBOX")?'<button class="btn ghost" data-act="archive">Archive</button>':'<button class="btn ghost" data-act="inbox">Move to Inbox</button>'}
+        ${FOLDER==="spam"?'<button class="btn ghost" data-act="notspam">Not spam</button>':'<button class="btn ghost" data-act="spam">Spam</button>'}
+        ${FOLDER==="trash"?'<button class="btn ghost" data-act="untrash">Restore</button>':'<button class="btn danger" data-act="trash">Delete</button>'}
+      </div>
+      ${m.attachments.length?`<div class="atts">${m.attachments.map(a=>`<a href="/api/mail/message/${m.id}/attachment/${encodeURIComponent(a.id)}?name=${encodeURIComponent(a.filename)}">📎 ${esc(a.filename)}</a>`).join("")}</div>`:""}
+      ${m.html&&hasRemote&&!showImages?'<div class="notice">Pictures are hidden to stop tracking. <button class="linkbtn" id="showImg">Show pictures</button></div>':""}
+      ${m.html?'<div class="rbody"><iframe sandbox="allow-popups allow-popups-to-escape-sandbox" title="Email" id="mframe"></iframe></div>':`<div class="rtext">${esc(m.text)}</div>`}`;
+    if(m.html){$("#mframe").srcdoc=frameFor(m.html,showImages)}
+    $("#showImg")?.addEventListener("click",()=>openMessage(id,true));
+  }catch(e){rd.innerHTML=`<div class="notice">${esc(e.message)}</div>`}
+}
+$("#reader").addEventListener("click",async e=>{
+  const act=e.target.dataset?.act;if(!act||!CUR?.msg)return;const m=CUR.msg;
+  if(act==="reply"){return openCompose({to:m.reply_to||m.from,subject:m.subject.toLowerCase().startsWith("re:")?m.subject:"Re: "+m.subject,reply_to_id:m.id,quote:m})}
+  if(act==="forward"){return openCompose({to:"",subject:"Fwd: "+m.subject,body:`\n\n---------- Forwarded message ----------\nFrom: ${m.from_name} <${m.from}>\nDate: ${m.date?new Date(m.date).toLocaleString():""}\nSubject: ${m.subject}\n\n${m.text||""}`})}
+  try{
+    await post(`/api/mail/message/${m.id}/action`,{action:act});
+    if(["archive","trash","spam","notspam","untrash","inbox"].includes(act)){ITEMS.splice(CUR.idx,1);CUR=null;renderList();$("#reader").innerHTML='<div class="okmsg">Done.</div>'}
+    else openMessage(m.id);
+    loadCounts();
+  }catch(err){alert(err.message)}
+});
+
+/* ---- drafts: review, edit, send ---- */
+function draftEditor(box,d,onSent){
+  box.innerHTML=`<div class="editor" style="display:flex;flex-direction:column;gap:10px">
+    ${d.job&&box.id==="reader"?`<div><span class="chip">${esc(d.job.title)}${d.job.company?" · "+esc(d.job.company):""}</span>${safeUrl(d.job.url)?` <a href="${esc(d.job.url)}" target="_blank" rel="noopener noreferrer" style="font-size:13px">Open job post</a>`:""}</div>`:""}
+    <label class="field"><span>To</span><input class="dTo" value="${esc(d.to)}"></label>
+    <label class="field"><span>Cc</span><input class="dCc" value="${esc(d.cc||"")}"></label>
+    <label class="field"><span>Subject</span><input class="dSubj" value="${esc(d.subject)}"></label>
+    <textarea class="dBody" aria-label="Email text" style="min-height:300px">${esc(d.body)}</textarea>
+    ${d.attachments.length?`<div class="atts">${d.attachments.map(a=>`<span style="font-size:13px;border:1px solid var(--line);border-radius:8px;padding:5px 10px">📎 ${esc(a.filename)}</span>`).join("")}</div>`:'<div class="notice">No CV attached to this draft.</div>'}
+    <div class="ractions"><button class="btn dSend">Send</button><button class="btn ghost dSave">Save changes</button><button class="btn danger dDel">Delete draft</button><span class="dNote" style="color:var(--slate);font-size:13px;align-self:center"></span></div>
+  </div>`;
+  const q=c=>box.querySelector(c), note=t=>q(".dNote").textContent=t;
+  const save=async()=>{const r=await post(`/api/mail/draft/${d.draft_id}`,{to:q(".dTo").value,cc:q(".dCc").value,subject:q(".dSubj").value,body:q(".dBody").value},"PUT");d.draft_id=r.draft_id;return r};
+  q(".dSave").onclick=async()=>{try{await save();note("Saved in Gmail.")}catch(e){note(e.message)}};
+  q(".dDel").onclick=async()=>{if(!confirm("Delete this draft?"))return;try{await post(`/api/mail/draft/${d.draft_id}`,null,"DELETE");box.innerHTML='<div class="okmsg">Draft deleted.</div>';onSent&&onSent(false);loadCounts()}catch(e){note(e.message)}};
+  q(".dSend").onclick=async()=>{
+    if(!await askConfirm(`To: ${q(".dTo").value}\nSubject: ${q(".dSubj").value}`))return;
+    try{q(".dSend").disabled=true;await save();const r=await post(`/api/mail/draft/${d.draft_id}/send`,{confirm:true});
+      box.innerHTML=`<div class="okmsg">Sent. ${r.job_ids.length?"The job is marked Sent, so follow-up drafts come on day 4 and day 10.":""}</div>`;onSent&&onSent(true);loadCounts();loadJobs()}
+    catch(e){note(e.message);q(".dSend").disabled=false}};
+}
+async function openDraft(id){
+  const rd=$("#reader");rd.innerHTML='<p class="placeholder">Opening draft…</p>';
+  try{const d=await getJSON(`/api/mail/draft/${id}`);CUR.draft=d;
+    draftEditor(rd,d,()=>{ITEMS.splice(CUR.idx,1);CUR=null;renderList()});
+  }catch(e){rd.innerHTML=`<div class="notice">${esc(e.message)}</div>`}
+}
+$("#sendAllBtn").onclick=async()=>{
+  const ready=ITEMS.filter(i=>i.draft_id&&i.job);if(!ready.length)return;
+  const list=ready.map(i=>`• ${i.job.company||i.to} (${i.to})`).join("\n");
+  if(!await askConfirm(`${ready.length} applications will go out, a few seconds apart:\n\n${list}`))return;
+  $("#sendAllBtn").disabled=true;$("#sendAllBtn").textContent="Sending…";
+  try{const r=await post("/api/mail/send-all",{draft_ids:ready.map(i=>i.draft_id),confirm:true});
+    $("#reader").innerHTML=`<div class="okmsg">Sent ${r.sent.length} of ${ready.length}.${r.failed.length?" "+r.failed.length+" failed; they are still in drafts.":""} Follow-ups start on day 4.</div>`;
+    loadMail(true);loadCounts();loadJobs()}
+  catch(e){$("#reader").innerHTML=`<div class="notice">${esc(e.message)}</div>`}
+  $("#sendAllBtn").disabled=false;
+};
+
+/* ---- job details drawer ---- */
+const drawer=$("#drawer");
+const closeDrawer=()=>drawer.classList.remove("on");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+document.addEventListener("click",e=>{
+  const v=e.target.dataset?.view;if(v){e.stopPropagation();return openJob(+v)}
+  const tr=e.target.closest("#jobs tr");
+  if(tr&&!e.target.closest("select,a,button")){const b=tr.querySelector("[data-view]");if(b)openJob(+b.dataset.view)}
+});
+async function openJob(id){
+  drawer.classList.add("on");drawer.innerHTML='<div class="dbody"><p class="placeholder">Opening…</p></div>';
+  let j;try{j=await getJSON(`/api/jobs/${id}`)}catch(e){drawer.innerHTML=`<div class="dbody"><div class="notice">${esc(e.message)}</div></div>`;return}
+  const posted=j.posted_at?new Date(j.posted_at).toLocaleDateString([],{day:"numeric",month:"short"}):"";
+  const D=j.details||{};
+  const found=["website","search"].includes(j.email_source);
+  drawer.innerHTML=`<div class="dhead"><div><h3>${esc(j.title||"SEO role")}</h3>
+      <small>${esc(j.company||"Company not named")}${j.city?" · "+esc(j.city):""} · ${esc(SOURCES[j.source]||j.source)}${posted?" · posted "+posted:""}</small></div>
+      <button class="x" aria-label="Close" id="dClose">×</button></div>
+    <div class="dbody">
+      <div class="ractions">
+        ${safeUrl(j.url)?`<a class="btn" id="jSite2" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">Apply on site ↗</a>`:""}
+        ${j.phone?`<a class="btn wa" id="jWa" href="#" title="${j.phone_source==="search"?"Number found on Google: may be an office line":"Number from the job post"}">💬 Apply on WhatsApp</a>`:""}
+        ${j.draft_id?`<button class="btn ghost" id="jOpenDraft">Open my email</button>`:j.contact_email?`<button class="btn" id="jApply">Apply by email</button>`:""}
+        <select data-job="${j.id}" data-s="${esc(j.status)}" aria-label="Status" class="viewbtn" style="padding:6px 10px">${STATUSES.map(s=>`<option ${s===j.status?"selected":""}>${s}</option>`).join("")}</select>
+      </div>
+      ${!j.phone?`<div class="box"><h4>💬 WhatsApp</h4>
+        <div class="row2"><input id="jPhone" placeholder="0300 1234567"><button class="btn ghost" id="jSavePhone">Save number</button><button class="btn ghost" id="jFindPhone">Find WhatsApp number</button></div>
+        <span id="jPhoneNote" class="hint" style="margin:0">Looks in the post first, then on Google.</span></div>`:""}
+      ${j.notes&&j.notes.startsWith("Reposted")?`<div class="notice">🔁 ${esc(j.notes.split("\n")[0])}</div>`:""}
+      ${j.budget_flag?'<div class="notice">Low budget / junior role for your 8 years. No automatic email was made; apply only if it still suits you.</div>':""}
+      ${j.phone?`<div class="${j.phone_source==="search"?"pinknote":"hint"}" style="margin:0">WhatsApp: +${esc(j.phone)} ${j.phone_source==="search"?"(found on Google, may be an office line; check before messaging)":"(from the job post)"}</div>`:""}
+      <div id="jMail"></div>
+      <div class="box"><h4>${j.contact_email?"Email for this job":"No email in the post. Add one to apply by email too"}</h4>
+        <div class="row2"><input id="jEmail" class="${found?"email-found":""}" placeholder="hr@company.com" value="${esc(j.contact_email||"")}"><button class="btn ghost" id="jSaveEmail">Save email</button></div>
+        ${found?`<div class="pinknote">Pink = not in the job post; RemoteRadar found it on ${esc(j.company_website||"their website")}. Check it before sending.</div>`:j.contact_email?'<div class="hint" style="margin:0">Written in the job post.</div>':""}
+        <div class="row2"><input id="jSite" placeholder="company website, e.g. pixelpeak.pk" value="${esc(j.company_website||"")}"><button class="btn ghost" id="jFind">Find email on website</button></div>
+        <div class="found" id="jFound">${(j.found_emails||[]).map(e=>`<button data-pick="${esc(e)}" class="${e===j.contact_email?"on":""}">${esc(e)}</button>`).join("")}</div>
+        <span id="jNote" class="hint" style="margin:0"></span>
+      </div>
+      ${j.match_score?`<div>${scoreChip(j.match_score)} <span class="hint" style="margin:0">${esc(j.match_reason||"")}</span></div>`:""}
+      <h4 style="margin:4px 0 0">Job details</h4>
+      <div class="facts">
+        <div><b>Company</b>${esc(D.company||j.company||"Not named")}</div>
+        <div><b>Job type</b>${esc(D.job_type||"Not stated")}</div>
+        <div><b>Work mode</b>${esc(D.work_mode||"Remote")}</div>
+        <div><b>Salary</b>${esc(D.salary||"Not stated")}</div>
+        <div><b>Timings</b>${esc(D.timings||"Not stated")}</div>
+        <div><b>Experience</b>${esc(D.experience||"Not stated")}</div>
+        ${j.region==="international"?`<div style="grid-column:1/-1"><b>Who can apply</b>${esc(ELIG[j.eligibility]||"Check the post")}</div>`:""}
+      </div>
+      <div class="summary">${D.summary?D.summary.split(/\n\s*\n/).map(p=>`<p>${esc(p)}</p>`).join(""):`<p class="hint">A clean summary appears for jobs found from now on.</p>`}</div>
+      <details class="orig"><summary>Original post</summary><div class="desc" style="margin-top:8px">${esc(j.text||"Not saved. Use Apply on site.")}</div></details>
+      <div class="box"><h4>Interview and notes</h4>
+        <div class="row2"><input type="datetime-local" id="jIv" value="${esc((j.interview_at||"").slice(0,16))}" aria-label="Interview date and time"><button class="btn ghost" id="jSaveNotes">Save</button></div>
+        <textarea id="jNotes" style="min-height:80px" placeholder="Notes: who you spoke to, salary discussed, next step…">${esc(j.notes||"")}</textarea>
+      </div>
+      <button class="btn danger" id="jBlock" style="align-self:flex-start">Never show ${esc(j.company||"this company")} again</button>
+    </div>`;
+  $("#dClose").onclick=closeDrawer;
+  if($("#jFindPhone"))$("#jFindPhone").onclick=async()=>{$("#jPhoneNote").textContent="Searching…";$("#jFindPhone").disabled=true;
+    try{const r=await post(`/api/jobs/${id}/find-phone`);if(r.phone){openJob(id);loadJobs()}else{$("#jPhoneNote").textContent=r.message}}
+    catch(e){$("#jPhoneNote").textContent=e.message}$("#jFindPhone").disabled=false};
+  if($("#jSavePhone"))$("#jSavePhone").onclick=async()=>{try{await post(`/api/jobs/${id}/phone`,{phone:$("#jPhone").value},"PUT");openJob(id);loadJobs()}catch(e){$("#jPhoneNote").textContent=e.message}};
+  if($("#jWa"))$("#jWa").onclick=async e=>{e.preventDefault();
+    const me=await getJSON("/api/me");
+    const msg=[`Assalam o Alaikum${j.hiring_name?" "+j.hiring_name.split(" ")[0]:""},`,"",
+      `I'm ${me.name}, a ${me.title} from ${me.city} with ${me.years} years of experience. I saw your ${j.title||"SEO"} opening${j.company?" at "+j.company:""}${SOURCES[j.source]?" on "+SOURCES[j.source]:""} and I'd like to apply.`,"",
+      "I've grown organic traffic by 60% across 10+ projects through content hubs, topic clusters and technical SEO, and I work daily with GSC, GA4, Ahrefs and SEMrush.","",
+      me.cv_link?`My CV: ${me.cv_link}`:"I can share my CV here right away.",`Portfolio: ${me.portfolio}`,"","Would you be open to a short call?","",`${me.name}`].join("\n");
+    window.open(`https://wa.me/${j.phone}?text=${encodeURIComponent(msg)}`,"_blank","noopener");
+    setTimeout(async()=>{if(confirm("Did you send the WhatsApp message? Mark this job as applied?")){await post(`/api/jobs/${id}/applied`,{channel:"WhatsApp"});openJob(id);loadJobs();loadReport()}},1500)};
+  if($("#jSite2"))$("#jSite2").addEventListener("click",()=>setTimeout(async()=>{if(j.status==="New"&&confirm("Did you apply on their site? Mark as applied?")){await post(`/api/jobs/${id}/applied`,{channel:"their website"});openJob(id);loadJobs();loadReport()}},2500));
+  $("#jSaveNotes").onclick=async()=>{try{await post(`/api/jobs/${id}/notes`,{interview_at:$("#jIv").value,notes:$("#jNotes").value},"PUT");$("#jNote").textContent="Saved.";loadJobs();loadReport()}catch(e){alert(e.message)}};
+  $("#jBlock").onclick=async()=>{if(!confirm(`Hide ${j.company||"this company"} from now on?`))return;await post("/api/blocked",{name:j.company||""});closeDrawer();loadJobs();loadReport()};
+  const note=t=>$("#jNote").textContent=t;
+  const saveEmail=async email=>{await post(`/api/jobs/${id}/contact`,{email,website:$("#jSite").value},"PUT");note("Saved.");setTimeout(()=>openJob(id),400);loadJobs()};
+  $("#jSaveEmail").onclick=()=>saveEmail($("#jEmail").value).catch(e=>note(e.message));
+  $("#jFound").onclick=e=>{const p=e.target.dataset?.pick;if(p)saveEmail(p).catch(er=>note(er.message))};
+  $("#jFind").onclick=async()=>{note("Looking at their homepage, Contact and Careers pages…");$("#jFind").disabled=true;
+    try{const r=await post(`/api/jobs/${id}/find-email`,{website:$("#jSite").value});
+      note(r.emails.length?`Found ${r.emails.length}. The best one is selected; tap another to switch.`:"No email on their website. Apply on site, or type one in if you have it.");
+      if(r.emails.length)setTimeout(()=>openJob(id),700);loadJobs()}
+    catch(e){note(e.message)}$("#jFind").disabled=false};
+  const showDraft=async did=>{const box=$("#jMail");box.innerHTML='<p class="hint">Opening your email…</p>';
+    const d=await getJSON(`/api/mail/draft/${did}`);draftEditor(box,d,()=>{loadJobs()})};
+  $("#jOpenDraft")&&($("#jOpenDraft").onclick=()=>showDraft(j.draft_id).catch(e=>note(e.message)));
+  $("#jApply")&&($("#jApply").onclick=async()=>{const b=$("#jApply");b.disabled=true;b.textContent="Writing your email…";
+    $("#jMail").innerHTML='<div class="okmsg">Writing a personal email for '+esc(j.company||"this company")+' with your CV attached. This takes about 20 seconds.</div>';
+    try{const r=await post(`/api/jobs/${id}/draft`);b.remove();await showDraft(r.draft_id);loadJobs();loadCounts()}
+    catch(e){$("#jMail").innerHTML=`<div class="notice">${esc(e.message)}</div>`;b.disabled=false;b.textContent="Apply by email"}});
+}
+
+function askConfirm(text){return new Promise(res=>{const d=$("#confirmDlg");$("#confirmText").innerText=text;d.showModal();$("#cYes").onclick=()=>{d.close();res(true)};$("#cNo").onclick=()=>{d.close();res(false)};d.oncancel=()=>res(false)})}
+
+/* ---- compose / reply ---- */
+function openCompose(o={}){
+  if(!$("#v-mail").classList.contains("on")){location.hash="#inbox"}
+  CUR=CUR||{};CUR.compose=o;
+  const quote=o.quote?`\n\nOn ${o.quote.date?new Date(o.quote.date).toLocaleString():""}, ${o.quote.from_name} wrote:\n`+(o.quote.text||"").split("\n").map(l=>"> "+l).join("\n"):"";
+  setTimeout(()=>{$("#reader").innerHTML=`<div class="editor" style="display:flex;flex-direction:column;gap:10px;height:100%">
+    <h3>${o.reply_to_id?"Reply":"New email"}</h3>
+    <label class="field"><span>To</span><input id="cTo" value="${esc(o.to||"")}" placeholder="name@company.com"></label>
+    <label class="field"><span>Cc</span><input id="cCc"></label>
+    <label class="field"><span>Subject</span><input id="cSubj" value="${esc(o.subject||"")}"></label>
+    <textarea id="cBody" aria-label="Email text">${esc((o.body||"")+quote)}</textarea>
+    <label class="chk" style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="cCv" ${o.reply_to_id?"":"checked"}> Attach my CV</label>
+    <div class="ractions"><button class="btn" id="cSend">Send</button><button class="btn ghost" id="cDraft">Save as draft</button><span id="cNote" style="color:var(--slate);font-size:13px;align-self:center"></span></div>
+  </div>`;
+  const payload=send=>({to:$("#cTo").value,cc:$("#cCc").value,subject:$("#cSubj").value,body:$("#cBody").value,reply_to_id:o.reply_to_id||null,attach_cv:$("#cCv").checked,send,confirm:send});
+  $("#cDraft").onclick=async()=>{try{await post("/api/mail/compose",payload(false));$("#reader").innerHTML='<div class="okmsg">Saved to drafts.</div>'}catch(e){$("#cNote").textContent=e.message}};
+  $("#cSend").onclick=async()=>{if(!await askConfirm(`To: ${$("#cTo").value}\nSubject: ${$("#cSubj").value}`))return;
+    try{$("#cSend").disabled=true;await post("/api/mail/compose",payload(true));$("#reader").innerHTML='<div class="okmsg">Sent.</div>';loadCounts()}
+    catch(e){$("#cNote").textContent=e.message;$("#cSend").disabled=false}};
+  $("#cTo").focus()},location.hash==="#"+FOLDER?0:300);
+}
+$("#composeBtn").onclick=()=>openCompose();
+
+/* ---- search ---- */
+$("#advBtn").onclick=()=>{const a=$("#adv");a.classList.toggle("on");$("#advBtn").setAttribute("aria-expanded",a.classList.contains("on"))};
+const runSearch=()=>{SEARCH={q:$("#mq").value,sender:$("#aFrom").value,words:$("#aWords").value,within_days:$("#aDays").value!=="0"?$("#aDays").value:"",unread:$("#aUnread").checked?"true":"",attachment:$("#aAtt").checked?"true":""};loadMail(true)};
+$("#advGo").onclick=runSearch;
+$("#mq").addEventListener("keydown",e=>{if(e.key==="Enter")runSearch()});
+$("#advClear").onclick=()=>{["#mq","#aFrom","#aWords"].forEach(s=>$(s).value="");$("#aDays").value="0";$("#aUnread").checked=$("#aAtt").checked=false;SEARCH={};loadMail(true)};
+$("#refreshBtn").onclick=()=>{loadMail(true);loadCounts()};
+
+/* ---- unread badges, refreshed every minute ---- */
+let lastUnread=null;
+async function loadCounts(){
+  try{const c=await getJSON("/api/mail/counts");
+    $("#n-inbox").textContent=c.inbox_unread||"";$("#n-ready").textContent=c.ready||"";$("#n-replies").textContent=c.replies||"";
+    document.title=(c.inbox_unread?`(${c.inbox_unread}) `:"")+"Ahsan RemoteRadar";
+    if(lastUnread!==null&&c.inbox_unread>lastUnread&&FOLDER==="inbox"&&$("#v-mail").classList.contains("on"))loadMail(true);
+    lastUnread=c.inbox_unread;
+    if(lastReplies!==null&&c.replies>lastReplies)notifyReply(c.replies-lastReplies);
+    lastReplies=c.replies;
+  }catch(e){}
+}
+
+async function loadReport(){
+  try{const r=await getJSON("/api/report");
+    $("#report").innerHTML=`<div><b>${r.found}</b><span>Jobs found</span></div><div><b>${r.sent}</b><span>Applications sent</span></div><div><b>${r.replied}</b><span>Replies</span></div><div><b>${r.reply_rate}%</b><span>Reply rate</span></div><div><b>${r.interviews}</b><span>Interviews</span></div>`;
+    $("#topMatches").innerHTML=r.top_matches.length?r.top_matches.map(m=>`<li>${scoreChip(m.match_score)} ${esc(m.title)} · ${esc(m.company||"")}${m.region==="international"?" 🌍":""}<button class="viewbtn" data-view="${m.id}">Open</button></li>`).join(""):'<li class="hint">Jobs scoring 70+ show up here.</li>';
+    $("#upcoming").innerHTML=r.upcoming.length?r.upcoming.map(u=>`<li>📅 ${new Date(u.interview_at).toLocaleString([],{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})} · ${esc(u.company||"")} ${esc(u.title||"")}<button class="viewbtn" data-view="${u.id}">Open</button></li>`).join(""):'<li class="hint">Add an interview date inside a job to see it here.</li>';
+    const bl=await getJSON("/api/blocked");
+    $("#blockedList").innerHTML=bl.length?bl.map(n=>`<li>${esc(n)}<button class="linkbtn" data-unblock="${esc(n)}">Show again</button></li>`).join(""):'<li class="hint">None. Use "Never show" inside a job.</li>';
+  }catch(e){}
+}
+document.addEventListener("click",async e=>{const u=e.target.dataset?.unblock;if(u){await post(`/api/blocked/${encodeURIComponent(u)}`,null,"DELETE");loadReport()}});
+loadReport();setInterval(loadReport,120000);
+let lastReplies=null;
+function notifyReply(n){if(!("Notification" in window))return;
+  if(Notification.permission==="granted")new Notification("RemoteRadar",{body:`${n} new reply from a company. Open Job replies.`});}
+if("Notification" in window&&Notification.permission==="default")setTimeout(()=>Notification.requestPermission(),4000);
+loadCounts();setInterval(loadCounts,60000);
+getJSON("/api/auth").then(a=>{if(a.enabled){$("#logoutBtn").style.display="";$("#logoutBtn").onclick=async()=>{await post("/api/logout");location.href="/login"}}}).catch(()=>{});
+route();
+
+</script>
+</body>
+</html>

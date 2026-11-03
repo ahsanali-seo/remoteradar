@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RemoteRadar · Log in</title>
+<style>
+:root{color-scheme:dark;font-family:"Onest",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;color:#F8FAFC;
+  background:radial-gradient(900px 500px at 80% -10%,rgba(34,211,238,.14),transparent 60%),radial-gradient(700px 400px at -10% 110%,rgba(129,140,248,.10),transparent 60%),#05070A}
+.card{width:min(380px,92vw);background:#0E1218;border:1px solid #1E2632;border-radius:16px;padding:30px 28px;box-shadow:0 24px 60px -30px rgba(0,0,0,.9)}
+.avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 14px;
+  border:2px solid transparent;background:linear-gradient(#0E1218,#0E1218) padding-box,linear-gradient(135deg,#2DD4BF,#22D3EE,#818CF8) border-box;
+  box-shadow:0 10px 30px -12px rgba(34,211,238,.6)}
+.card.has-photo{text-align:center}.card.has-photo label{text-align:left}.card.has-photo .logo{display:none}
+.logo{width:44px;height:44px;border-radius:50%;border:1.5px solid #2DD4BF;position:relative;overflow:hidden;margin-bottom:16px}
+.logo::before{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0 75%,rgba(34,211,238,.8) 100%);animation:s 3s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+h1{font-size:21px;margin:0 0 4px}p{margin:0 0 22px;color:#9AA6B8;font-size:14px}
+label{display:block;font-size:13px;color:#9AA6B8;margin-bottom:6px}
+input{width:100%;font:inherit;color:inherit;background:#05070A;border:1px solid #1E2632;border-radius:10px;padding:11px 12px}
+input:focus{outline:2px solid #22D3EE;outline-offset:1px}
+button{margin-top:16px;width:100%;font:inherit;font-weight:700;border:0;border-radius:999px;padding:11px;cursor:pointer;color:#031417;
+  background:linear-gradient(135deg,#2DD4BF,#22D3EE 55%,#818CF8);box-shadow:0 8px 24px -10px rgba(34,211,238,.6)}
+button:disabled{opacity:.6}
+.err{min-height:20px;margin-top:12px;color:#F87171;font-size:13.5px}
+@media (prefers-reduced-motion:reduce){.logo::before{animation:none}}
+</style></head>
+<body><form class="card" id="f">
+  <img class="avatar" id="av" src="/login-photo" alt="Ahsan Ali" hidden>
+  <div class="logo" aria-hidden="true"></div>
+  <h1>RemoteRadar</h1><p>Ahsan Ali · job agent</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password" autofocus required>
+  <button id="b">Log in</button>
+  <div class="err" id="e" role="alert"></div>
+</form>
+<script>
+const av=document.getElementById("av");
+av.onload=()=>{av.hidden=false;document.getElementById("f").classList.add("has-photo")};
+av.onerror=()=>av.remove();
+document.getElementById("f").onsubmit=async ev=>{ev.preventDefault();const b=document.getElementById("b"),e=document.getElementById("e");
+  b.disabled=true;e.textContent="";
+  try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json","X-Radar":"1"},body:JSON.stringify({password:document.getElementById("pw").value})});
+    const j=await r.json().catch(()=>({}));if(r.ok){location.href="/"+(location.hash||"");return}e.textContent=j.detail||"Wrong password"}
+  catch(x){e.textContent="Can't reach the dashboard. Is it running?"}
+  b.disabled=false;document.getElementById("pw").select()};
+</script></body></html>

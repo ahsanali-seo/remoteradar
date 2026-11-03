@@ -1,0 +1,11 @@
+platform,name,url,link_pattern
+indeed,Indeed Lahore,https://pk.indeed.com/jobs?q=SEO&l=Lahore&fromage=7&sort=date,jk=|/viewjob|/rc/clk
+indeed,Indeed Islamabad,https://pk.indeed.com/jobs?q=SEO&l=Islamabad&fromage=7&sort=date,jk=|/viewjob|/rc/clk
+indeed,Indeed Karachi,https://pk.indeed.com/jobs?q=SEO&l=Karachi&fromage=7&sort=date,jk=|/viewjob|/rc/clk
+indeed,Indeed Rawalpindi,https://pk.indeed.com/jobs?q=SEO&l=Rawalpindi&fromage=7&sort=date,jk=|/viewjob|/rc/clk
+rozee,Rozee Lahore,https://www.rozee.pk/job/jsearch/q/seo%20lahore,/job/|-jobs-\d+
+rozee,Rozee Islamabad,https://www.rozee.pk/job/jsearch/q/seo%20islamabad,/job/|-jobs-\d+
+rozee,Rozee Karachi,https://www.rozee.pk/job/jsearch/q/seo%20karachi,/job/|-jobs-\d+
+rozee,Rozee Rawalpindi,https://www.rozee.pk/job/jsearch/q/seo%20rawalpindi,/job/|-jobs-\d+
+rozee,Mustakbil,https://www.mustakbil.com/jobs/search?keywords=seo,/jobs/job/|/jobs/\d+
+rozee,BrightSpyre,https://www.brightspyre.com/opening/index?keyword=seo,/opening/

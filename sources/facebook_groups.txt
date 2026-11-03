@@ -1,0 +1,5 @@
+# One group link per line. The SPARE Facebook account must already be a member.
+# Example:
+# https://www.facebook.com/groups/lahorejobs
+# https://www.facebook.com/groups/islamabadjobs
+# https://www.facebook.com/groups/digitalmarketingjobspakistan

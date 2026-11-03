@@ -1,0 +1,31 @@
+company,ats,slug
+# Leave ats/slug empty: the tool finds the careers system itself and remembers it.
+# If it says "careers board not found", open the company's careers page, look at a job link
+# (e.g. boards.greenhouse.io/NAME, jobs.lever.co/NAME, jobs.ashbyhq.com/NAME) and fill ats + slug.
+# ats can be: greenhouse, lever, ashby, workable, smartrecruiters, or none (skip).
+Airbnb,,
+Canva,,
+Stripe,,
+Coursera,,
+Kraken,,
+NP Digital,,
+Eneba,,
+Motive,,
+Manaferra,,
+# Remote-first and SEO-tool companies that often hire across time zones
+Semrush,,
+Ahrefs,,
+Yoast,,
+Moz,,
+GitLab,,
+Zapier,,
+Automattic,,
+Hotjar,,
+Toptal,,
+Doist,,
+Remote,,
+Deel,,
+Wise,,
+Shopify,,
+Webflow,,
+HubSpot,,

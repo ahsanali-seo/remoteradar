@@ -1,0 +1,10 @@
+# Hashtags (start with #) or hiring accounts (plain handle), one per line.
+# Add hiring pages you trust as plain handles, e.g.  somehiringpage
+#seojobs
+#seojobspakistan
+#lahorejobs
+#islamabadjobs
+#jobsinlahore
+#jobsinislamabad
+#remotejobspakistan
+#digitalmarketingjobs

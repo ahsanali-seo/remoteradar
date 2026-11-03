@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ahsan RemoteRadar</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070A; --card:#0E1218; --card-2:#151B24; --line:#1E2632;
+  --teal:#2DD4BF; --teal-dim:rgba(45,212,191,.14); --cyan:#22D3EE; --violet:#A78BFA; --green:#4ADE80;
+  --grad:linear-gradient(135deg,#2DD4BF 0%,#22D3EE 55%,#818CF8 100%);
+  --amber:#F59E0B; --amber-dim:rgba(245,158,11,.15); --red:#EF4444; --red-dim:rgba(239,68,68,.15);
+  --pink:#F472B6; --text:#F8FAFC; --slate:#9AA6B8; --slate-2:#5F6B7D; --r-lg:14px; --r-sm:8px;
+  font-family:"Onest",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+a{color:var(--teal)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px;border-radius:6px}
+.btn{border:0;border-radius:999px;padding:10px 20px;font-weight:600;cursor:pointer;background:var(--grad);color:#04201D;text-decoration:none;display:inline-block;text-align:center}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);padding:8px 16px}
+.btn.wa{background:#25D366;color:#052e16}
+.btn.small{padding:5px 12px;font-size:13px}
+.hint{color:var(--slate);font-size:13px}
+/* login */
+.lock{min-height:100vh;display:grid;place-items:center;padding:24px}
+.lock form{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px;width:min(380px,100%);display:flex;flex-direction:column;gap:14px;text-align:center}
+.lock h1{margin:0;font-size:22px}
+.lock input[type=password]{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.lock label{display:flex;gap:8px;align-items:center;justify-content:center;color:var(--slate);font-size:13.5px}
+.err{color:var(--red);font-size:14px;min-height:20px}
+.logo{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--teal);position:relative;overflow:hidden;margin:0 auto}
+.logo::before{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0 75%,rgba(20,184,166,.75) 100%);animation:sweep 3.2s linear infinite}
+.logo::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:var(--teal)}
+@keyframes sweep{to{transform:rotate(360deg)}}
+/* layout */
+.app{display:none;grid-template-columns:240px 1fr;min-height:100vh}
+.app.on{display:grid}
+nav{border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+nav .brand{display:flex;gap:10px;align-items:center;margin:0 6px 20px}
+nav .brand .logo{width:36px;height:36px;margin:0}
+nav .brand b{display:block;font-size:16px}
+nav .brand small{color:var(--slate);font-size:12.5px}
+nav button{background:none;border:0;text-align:left;padding:9px 12px;border-radius:10px;color:var(--slate);cursor:pointer;display:flex;justify-content:space-between}
+nav button.on{background:var(--teal-dim);color:var(--text);box-shadow:inset 2px 0 0 var(--teal)}
+nav .sp{flex:1}
+nav .count{color:var(--slate-2);font-size:13px}
+main{padding:26px 30px 60px;min-width:0}
+.top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.top h2{margin:0;font-size:22px}
+.top .sub{color:var(--slate);font-size:13.5px}
+.top .right{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.today{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:24px;overflow:hidden}
+.today div{padding:14px 18px;border-right:1px solid var(--line)}
+.today div:last-child{border-right:0}
+.today b{display:block;font-size:28px;font-weight:600;line-height:1.1}
+.today span{color:var(--slate);font-size:13px}
+h3{font-size:16px;margin:0 0 12px}
+section{margin-bottom:28px}
+.agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.agent{background:var(--card);border-radius:var(--r-lg);padding:14px 16px;border:1px solid transparent}
+.agent.blocked,.agent.error{border-color:rgba(239,68,68,.5)}
+.agent .n{display:flex;justify-content:space-between;font-weight:600}
+.agent .d{color:var(--slate);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.agent .m{color:var(--slate-2);font-size:12px;margin-top:6px}
+.pill{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px}
+.pill.OK{background:var(--teal-dim);color:var(--teal)}
+.pill.Warning{background:var(--amber-dim);color:var(--amber)}
+.pill.Blocked{background:var(--red-dim);color:var(--red)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px}
+.minilist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.minilist li{display:flex;gap:10px;align-items:center;cursor:pointer}
+.minilist li small{color:var(--slate)}
+.feed{max-height:340px;overflow-y:auto;font-size:13px;color:var(--slate);display:flex;flex-direction:column;gap:4px}
+.feed .warn{color:var(--amber)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.filters input,.filters select{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.filters input{flex:1;min-width:200px}
+.tablewrap{border:1px solid var(--line);border-radius:var(--r-lg);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:860px}
+th{text-align:left;font-weight:500;color:var(--slate);font-size:13px;padding:12px 14px;border-bottom:1px solid var(--line)}
+td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:14.5px}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--card)}
+td.role small{display:block;color:var(--slate-2);font-size:12.5px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;background:var(--cyan)}
+.score{display:inline-block;min-width:38px;text-align:center;padding:3px 8px;border-radius:999px;font-weight:600;font-size:13px;background:var(--card-2);color:var(--slate)}
+.score.hi{background:var(--teal-dim);color:var(--teal)}.score.mid{background:var(--amber-dim);color:var(--amber)}
+.tag{font-size:11.5px;padding:1px 7px;border-radius:999px;margin-left:6px;background:var(--amber-dim);color:var(--amber);font-weight:600}
+.st{font-size:12.5px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.st.Sent,.st.Replied,.st.Interview{border-color:var(--amber);color:var(--amber)}
+.st.Drafted{border-color:var(--teal);color:var(--teal)}
+.pink{color:var(--pink)}
+.empty{padding:40px;text-align:center;color:var(--slate)}
+/* drawer */
+.drawer{position:fixed;top:0;right:0;width:min(620px,100vw);height:100vh;background:var(--card);border-left:1px solid var(--line);box-shadow:-20px 0 40px rgba(0,0,0,.35);transform:translateX(105%);transition:transform .25s ease;z-index:20;display:flex;flex-direction:column}
+.drawer.on{transform:none}
+.dhead{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 14px;border-bottom:1px solid var(--line)}
+.dhead h3{margin:0;font-size:19px;line-height:1.3}
+.dhead small{display:block;color:var(--slate);font-size:13.5px;margin-top:4px}
+.x{margin-left:auto;background:none;border:1px solid var(--line);color:var(--text);border-radius:8px;width:34px;height:34px;cursor:pointer;font-size:18px;flex:none}
+.dbody{padding:16px 22px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;flex:1}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.notice{background:var(--amber-dim);color:var(--amber);padding:10px 14px;border-radius:var(--r-sm);font-size:14px}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px}
+.facts div{font-size:14px;overflow-wrap:anywhere}.facts b{display:block;color:var(--slate);font-weight:500;font-size:12.5px}
+.summary p{margin:0 0 10px}
+.desc{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px;font-size:14px;line-height:1.55;max-height:46vh;overflow-y:auto}
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:19;display:none}
+.shade.on{display:block}
+@media (max-width:820px){
+  .app.on{grid-template-columns:1fr}
+  nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line);padding:12px}
+  nav .brand{width:100%;margin-bottom:8px}
+  nav .sp,nav .count{display:none}
+  nav button{padding:7px 10px}
+  main{padding:18px 14px 40px}
+  .today{grid-template-columns:repeat(2,1fr)}
+  .today div{border-bottom:1px solid var(--line)}
+  .grid2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="lock" id="lock">
+  <form id="loginForm" autocomplete="on">
+    <div class="logo" aria-hidden="true"></div>
+    <h1>Ahsan RemoteRadar</h1>
+    <div class="hint" id="lockHint">Enter the dashboard password.</div>
+    <input type="password" id="pw" placeholder="Password" autocomplete="current-password" aria-label="Password" required>
+    <label><input type="checkbox" id="remember" checked> Remember on this device</label>
+    <button class="btn" type="submit" id="loginBtn">Open dashboard</button>
+    <div class="err" id="err" role="alert"></div>
+  </form>
+</div>
+
+<div class="app" id="app">
+  <nav>
+    <div class="brand"><div class="logo" aria-hidden="true"></div><div><b>RemoteRadar</b><small>Ahsan Ali · job agent</small></div></div>
+    <button data-view="overview" class="on">Overview</button>
+    <button data-view="local">Local jobs <span class="count" id="cLocal"></span></button>
+    <button data-view="international">International jobs <span class="count" id="cIntl"></span></button>
+    <button data-view="ready">Ready to send <span class="count" id="cReady"></span></button>
+    <div class="sp"></div>
+    <button id="logout">Log out</button>
+  </nav>
+  <main id="main"></main>
+</div>
+<div class="shade" id="shade"></div>
+<aside class="drawer" id="drawer" aria-label="Job details"></aside>
+
+<script>
+const BOX=/*__RADAR_DATA__*/null;
+const KEY_STORE="rr_key_v1";
+const STATUSES=["New","Drafted","Sent","Follow-up 1","Follow-up 2","Replied","Interview","Rejected"];
+const SOURCES={linkedin:"LinkedIn",facebook:"Facebook",instagram:"Instagram",indeed:"Indeed",rozee:"Rozee & boards",careers:"Career pages",gmail:"Gmail alerts",quickadd:"Quick-add",intl:"International",remotive:"Remotive",remoteok:"RemoteOK",wwr:"We Work Remotely",himalayas:"Himalayas",jobicy:"Jobicy",workingnomads:"Working Nomads",ats:"Company careers",linkedin_ww:"LinkedIn Pakistan remote"};
+const ELIG={worldwide:"🟢 Worldwide",asia:"🟢 Pakistan / Asia",unclear:"Check",restricted:"Not open to Pakistan",local:"Pakistan"};
+const SRC_COLOR={linkedin:"#38BDF8",rozee:"#F472B6",indeed:"#818CF8",careers:"#A78BFA",gmail:"#F59E0B",quickadd:"#4ADE80"};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>/^https?:\/\//i.test(u||"");
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const hex=h=>new Uint8Array(h.match(/../g).map(x=>parseInt(x,16)));
+const toHex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");
+let D=null, VIEW="overview";
+
+async function deriveKey(pw){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
+  return crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:hex(BOX.salt),iterations:BOX.iter},base,256);
+}
+async function decrypt(rawKey){
+  const key=await crypto.subtle.importKey("raw",rawKey,"AES-GCM",false,["decrypt"]);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(BOX.iv)},key,b64(BOX.ct));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+function store(k,v){try{v?localStorage.setItem(KEY_STORE,v):localStorage.removeItem(KEY_STORE)}catch(e){}}
+function stored(){try{return localStorage.getItem(KEY_STORE)}catch(e){return null}}
+
+async function tryStored(){
+  const k=stored(); if(!k||!BOX) return false;
+  try{D=await decrypt(hex(k));return true}catch(e){store(KEY_STORE,null);return false}
+}
+$("#loginForm").onsubmit=async e=>{
+  e.preventDefault(); if(!BOX) return;
+  $("#err").textContent=""; $("#loginBtn").disabled=true; $("#loginBtn").textContent="Opening…";
+  try{const raw=await deriveKey($("#pw").value); D=await decrypt(raw);
+      if($("#remember").checked) store(KEY_STORE,toHex(raw)); show();}
+  catch(err){$("#err").textContent="Wrong password";}
+  $("#loginBtn").disabled=false; $("#loginBtn").textContent="Open dashboard";
+};
+$("#logout").onclick=()=>{store(KEY_STORE,null);location.reload()};
+
+function ago(iso){if(!iso)return"";const m=Math.round((Date.now()-new Date(iso))/60000);
+  if(m<1)return"just now";if(m<60)return m+" min ago";const h=Math.round(m/60);if(h<48)return h+" h ago";return Math.round(h/24)+" days ago"}
+function day(iso){return iso?new Date(iso).toLocaleDateString([],{day:"numeric",month:"short"}):""}
+function scoreChip(s){if(!s&&s!==0)return'<span class="score">–</span>';return`<span class="score ${s>=75?"hi":s>=50?"mid":""}">${s}</span>`}
+function gmailDraft(j){const u=encodeURIComponent(D.me.email);
+  return j.draft_msg?`https://mail.google.com/mail/?authuser=${u}#drafts?compose=${j.draft_msg}`:
+    `https://mail.google.com/mail/?authuser=${u}#search/${encodeURIComponent("in:drafts "+(j.company||j.title||""))}`}
+function readyJobs(){return D.jobs.filter(j=>j.draft_id&&!j.sent_at)}
+function region(j){return j.region||"local"}
+function sortJobs(a,b){return (!!a.budget_flag-!!b.budget_flag)||((b.match_score||0)-(a.match_score||0))||(b.id-a.id)}
+
+function show(){
+  $("#lock").style.display="none"; $("#app").classList.add("on");
+  $("#cLocal").textContent=D.jobs.filter(j=>region(j)==="local").length;
+  $("#cIntl").textContent=D.jobs.filter(j=>region(j)==="international").length;
+  $("#cReady").textContent=readyJobs().length||"";
+  const h=(location.hash||"").slice(1); render(["overview","local","international","ready"].includes(h)?h:"overview");
+}
+document.querySelectorAll("nav [data-view]").forEach(b=>b.onclick=()=>{location.hash=b.dataset.view;render(b.dataset.view)});
+window.addEventListener("hashchange",()=>{if(D){const h=location.hash.slice(1);if(h&&h!==VIEW)render(h)}});
+
+function topbar(title,sub){
+  return`<div class="top"><div><h2>${title}</h2><div class="sub">${sub}</div></div>
+    <div class="right"><span class="hint">Updated ${ago(D.generated)}</span>
+    ${D.actions_url?`<a class="btn" href="${esc(D.actions_url)}" target="_blank" rel="noopener">Run now ↗</a>`:""}</div></div>`}
+
+function render(v){
+  VIEW=v; document.querySelectorAll("nav [data-view]").forEach(b=>b.classList.toggle("on",b.dataset.view===v));
+  const m=$("#main");
+  if(v==="overview"){
+    const t=D.today, w=D.week;
+    const top=D.jobs.filter(j=>(j.match_score||0)>=70&&["New","Drafted"].includes(j.status)&&!j.budget_flag).sort(sortJobs).slice(0,6);
+    const iv=D.jobs.filter(j=>j.status==="Interview"&&j.interview_at).sort((a,b)=>a.interview_at.localeCompare(b.interview_at));
+    m.innerHTML=topbar("Overview","Runs by itself in the cloud, about 09:00, 14:00, 19:00 and 23:00, plus a light check every hour")+`
+      <div class="today"><div><b>${t.new_jobs}</b><span>New jobs today</span></div><div><b>${t.duplicates}</b><span>Duplicates skipped</span></div>
+      <div><b>${t.drafts}<small class="hint">/${t.draft_cap}</small></b><span>Drafts today</span></div><div><b>${readyJobs().length}</b><span>Ready to send</span></div>
+      <div><b>${t.followups_due}</b><span>Follow-ups due</span></div></div>
+      <section><h3>Sources</h3><div class="agents">${D.agents.filter(a=>a.platform!=="quickadd"&&!(a.status==="paused"&&(a.detail||"").startsWith("Off"))).map(a=>`<div class="agent ${esc(a.status)}">
+        <div class="n">${esc(a.label)} <span class="pill ${esc(a.health)}">${esc(a.health)}</span></div>
+        <div class="d">${esc(a.detail||a.status)}</div><div class="m">${a.last_success?"Last success "+ago(a.last_success):"No success yet"}${a.enabled?"":" · switched off"}</div></div>`).join("")}</div></section>
+      <div class="grid2">
+        <section class="card"><h3>This week</h3><div class="today" style="grid-template-columns:repeat(4,1fr);margin:0">
+          <div><b>${w.found}</b><span>Found</span></div><div><b>${w.sent}</b><span>Sent</span></div><div><b>${w.replied}</b><span>Replies</span></div><div><b>${w.reply_rate}%</b><span>Reply rate</span></div></div>
+          <h3 style="margin-top:18px">Best matches</h3><ul class="minilist">${top.map(j=>`<li data-job="${j.id}">${scoreChip(j.match_score)}<span>${esc(j.title)}<br><small>${esc(j.company||"")}</small></span></li>`).join("")||'<li class="hint">None right now.</li>'}</ul>
+          ${iv.length?`<h3 style="margin-top:18px">Upcoming interviews</h3><ul class="minilist">${iv.map(j=>`<li data-job="${j.id}"><b>${esc(new Date(j.interview_at).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}))}</b><span>${esc(j.company||j.title)}</span></li>`).join("")}</ul>`:""}
+        </section>
+        <section class="card"><h3>Latest activity</h3><div class="feed">${D.events.slice().reverse().map(e=>`<div class="${e.level==="warn"?"warn":""}">${esc(e.ts?new Date(e.ts).toLocaleString([],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"")} ${e.platform?"["+esc(e.platform)+"] ":""}${esc(e.message)}</div>`).join("")}</div></section>
+      </div>`;
+  } else if(v==="ready"){
+    const list=readyJobs().sort(sortJobs);
+    m.innerHTML=topbar("Ready to send","Drafts with your CV attached, waiting in Gmail. Open one, check it and press Send in Gmail.")+`
+      ${D.gmail_label?`<p><a class="btn ghost" target="_blank" rel="noopener" href="https://mail.google.com/mail/?authuser=${encodeURIComponent(D.me.email)}#label/${encodeURIComponent(D.gmail_label)}">Open all in Gmail (${esc(D.gmail_label)}) ↗</a></p>`:""}
+      <div class="tablewrap"><table><thead><tr><th>Match</th><th>Company</th><th>Role</th><th>To</th><th>Subject</th><th></th></tr></thead><tbody>
+      ${list.map(j=>`<tr data-job="${j.id}"><td>${scoreChip(j.match_score)}</td><td>${esc(j.company||"")}</td><td class="role">${esc(j.title||"")}</td>
+        <td>${esc(j.contact_email||"")}</td><td class="role"><small>${esc(j.subject||"")}</small></td>
+        <td><a class="btn small" href="${esc(gmailDraft(j))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open in Gmail ↗</a></td></tr>`).join("")}
+      </tbody></table>${list.length?"":'<div class="empty">No drafts waiting. New ones appear after each run.</div>'}</div>`;
+  } else {
+    const reg=v==="international"?"international":"local";
+    m.innerHTML=topbar(reg==="local"?"Local jobs":"International jobs",reg==="local"?"Remote SEO jobs · Lahore, Islamabad, Karachi and Rawalpindi":"Remote SEO jobs open to people in Pakistan")+`
+      <div class="filters"><input id="fq" placeholder="Search company or role" aria-label="Search">
+        <select id="fs" aria-label="Status"><option value="">All statuses</option>${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
+        <select id="fsrc" aria-label="Source"><option value="">All sources</option>${[...new Set(D.jobs.filter(j=>region(j)===reg).map(j=>j.source))].map(s=>`<option value="${esc(s)}">${esc(SOURCES[s]||s)}</option>`).join("")}</select>
+        ${reg==="international"?'<label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fhide" checked> Hide “Check”</label>':""}</div>
+      <div class="tablewrap" id="tw"></div>`;
+    const draw=()=>{
+      const q=$("#fq").value.toLowerCase(), s=$("#fs").value, src=$("#fsrc").value, hide=$("#fhide")&&$("#fhide").checked;
+      const rows=D.jobs.filter(j=>region(j)===reg&&(!q||((j.company||"")+" "+(j.title||"")).toLowerCase().includes(q))&&(!s||j.status===s)&&(!src||j.source===src)&&!(hide&&j.eligibility==="unclear")).sort(sortJobs);
+      $("#tw").innerHTML=`<table><thead><tr><th>Match</th><th>Found</th><th>Source</th><th>Company</th><th>Role</th><th>${reg==="local"?"City":"Who can apply"}</th><th>Email</th><th>Link</th><th>Status</th><th></th></tr></thead><tbody>
+        ${rows.map(j=>`<tr data-job="${j.id}"><td>${scoreChip(j.match_score)}</td><td>${day(j.created_at)}</td>
+          <td><span class="dot" style="background:${SRC_COLOR[j.source]||"var(--cyan)"}"></span>${esc(SOURCES[j.source]||j.source)}</td>
+          <td>${esc(j.company||"")}</td>
+          <td class="role">${esc(j.title||"SEO role")}${j.budget_flag?'<span class="tag">Low budget</span>':""}${j.phone?" 💬":""}${j.notes&&j.notes.startsWith("Reposted")?'<span class="tag" style="background:rgba(167,139,250,.15);color:var(--violet)">Reposted</span>':""}${j.stage_reason&&j.stage!=="drafted"?`<small>${esc(j.stage_reason)}</small>`:""}</td>
+          <td>${esc(reg==="local"?(j.city||""):(ELIG[j.eligibility]||"Check"))}</td>
+          <td class="${["website","search"].includes(j.email_source)?"pink":""}">${esc(j.contact_email||"")||'<span class="hint">Apply on site</span>'}</td>
+          <td>${safeUrl(j.url)?`<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open</a>`:""}</td>
+          <td><span class="st ${esc(j.status)}">${esc(j.status)}</span></td>
+          <td><button class="btn ghost small">View &amp; apply</button></td></tr>`).join("")}</tbody></table>
+        ${rows.length?"":'<div class="empty">No jobs here yet.</div>'}`;
+    };
+    ["fq","fs","fsrc","fhide"].forEach(id=>$("#"+id)&&$("#"+id).addEventListener("input",draw));
+    draw();
+  }
+}
+document.addEventListener("click",e=>{const r=e.target.closest("[data-job]");if(r&&!e.target.closest("a"))openJob(+r.dataset.job)});
+$("#shade").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+function closeDrawer(){$("#drawer").classList.remove("on");$("#shade").classList.remove("on")}
+
+function waMessage(j){const me=D.me;
+  return[`Assalam o Alaikum${j.hiring_name?" "+j.hiring_name.split(" ")[0]:""},`,"",
+    `I'm ${me.name}, a ${me.title} from ${me.city} with ${me.years} years of experience. I saw your ${j.title||"SEO"} opening${j.company?" at "+j.company:""}${SOURCES[j.source]?" on "+SOURCES[j.source]:""} and I'd like to apply.`,"",
+    "I've grown organic traffic by 60% across 10+ projects through content hubs, topic clusters and technical SEO, and I work daily with GSC, GA4, Ahrefs and SEMrush.","",
+    me.cv_link?`My CV: ${me.cv_link}`:"I can share my CV here right away.",`Portfolio: ${me.portfolio}`,"","Would you be open to a short call?","",me.name].join("\n")}
+
+function openJob(id){
+  const j=D.jobs.find(x=>x.id===id); if(!j) return;
+  const X=j.details||{}, found=["website","search"].includes(j.email_source);
+  const mail=j.contact_email?`mailto:${encodeURIComponent(j.contact_email)}?subject=${encodeURIComponent("Application: "+(j.title||"SEO role")+(j.company?" at "+j.company:""))}`:"";
+  $("#drawer").innerHTML=`<div class="dhead"><div><h3>${esc(j.title||"SEO role")}</h3>
+      <small>${esc(j.company||"Company not named")}${j.city?" · "+esc(j.city):""} · ${esc(SOURCES[j.source]||j.source)}${j.posted_at?" · posted "+day(j.posted_at):""}</small></div>
+      <button class="x" aria-label="Close" id="dClose">×</button></div>
+    <div class="dbody">
+      <div class="actions">
+        ${safeUrl(j.url)?`<a class="btn" href="${esc(j.url)}" target="_blank" rel="noopener noreferrer">Apply on site ↗</a>`:""}
+        ${j.phone?`<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${esc(j.phone)}?text=${encodeURIComponent(waMessage(j))}">💬 Apply on WhatsApp</a>`:""}
+        ${j.draft_id&&!j.sent_at?`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(gmailDraft(j))}">✉️ Open my email in Gmail ↗</a>`:j.contact_email&&!j.sent_at?`<a class="btn ghost" href="${esc(mail)}">✉️ Email them</a>`:""}
+        <span class="st ${esc(j.status)}" style="align-self:center">${esc(j.status)}</span>
+      </div>
+      ${j.draft_id&&!j.sent_at?'<div class="hint">Your email (with CV attached) is a draft in Gmail. Check it there and press Send; it is marked Sent on the next run.</div>':""}
+      ${!j.draft_id&&j.contact_email&&!j.sent_at?'<div class="hint">No draft yet (daily cap, low budget or a recent application to this company). “Email them” opens a blank email; attach your CV yourself.</div>':""}
+      ${j.notes&&j.notes.startsWith("Reposted")?`<div class="notice">🔁 ${esc(j.notes.split("\n")[0])}</div>`:""}
+      ${j.budget_flag?'<div class="notice">Low budget / junior role for your 8 years. No automatic email was made; apply only if it still suits you.</div>':""}
+      ${j.phone?`<div class="${j.phone_source==="search"?"pink":"hint"}">WhatsApp: +${esc(j.phone)} ${j.phone_source==="search"?"(found on Google, may be an office line; check before messaging)":"(from the job post)"}</div>`:""}
+      ${j.contact_email?`<div class="${found?"pink":"hint"}">Email: ${esc(j.contact_email)} ${found?`(not in the post; found on ${esc(j.company_website||"their website")}, check before sending)`:"(written in the job post)"}</div>`:""}
+      ${j.match_score?`<div>${scoreChip(j.match_score)} <span class="hint">${esc(j.match_reason||"")}</span></div>`:""}
+      <h3 style="margin:4px 0 0">Job details</h3>
+      <div class="facts">
+        <div><b>Company</b>${esc(X.company||j.company||"Not named")}</div><div><b>Job type</b>${esc(X.job_type||"Not stated")}</div>
+        <div><b>Work mode</b>${esc(X.work_mode||"Remote")}</div><div><b>Salary</b>${esc(X.salary||"Not stated")}</div>
+        <div><b>Timings</b>${esc(X.timings||"Not stated")}</div><div><b>Experience</b>${esc(X.experience||"Not stated")}</div>
+        ${region(j)==="international"?`<div style="grid-column:1/-1"><b>Who can apply</b>${esc(ELIG[j.eligibility]||"Check the post")}</div>`:""}
+        ${j.sent_at?`<div><b>Sent</b>${day(j.sent_at)}</div>`:""}${j.replied_at?`<div><b>Replied</b>${day(j.replied_at)}</div>`:""}
+        ${j.interview_at?`<div><b>Interview</b>${esc(new Date(j.interview_at).toLocaleString())}</div>`:""}
+      </div>
+      <div class="summary">${X.summary?X.summary.split(/\n\s*\n/).map(p=>`<p>${esc(p)}</p>`).join(""):""}</div>
+      <details><summary>Original post</summary><div class="desc" style="margin-top:8px">${esc(j.text||"Not saved. Use Apply on site.")}</div></details>
+      ${j.notes&&!j.notes.startsWith("Reposted")?`<div class="card"><b>Notes</b><div class="hint" style="white-space:pre-wrap">${esc(j.notes)}</div></div>`:""}
+    </div>`;
+  $("#dClose").onclick=closeDrawer;
+  $("#drawer").classList.add("on"); $("#shade").classList.add("on");
+}
+
+(async()=>{
+  if(!BOX){$("#lockHint").textContent="No dashboard password is set yet. Set one on the Mac with: radar set-password";$("#loginForm").querySelectorAll("input,button").forEach(x=>x.disabled=true);return}
+  if(await tryStored()) show();
+})();
+</script>
+</body>
+</html>
