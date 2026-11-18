@@ -161,9 +161,9 @@ td.role small{display:block;color:var(--slate-2);font-size:12.5px}
 const BOX=/*__RADAR_DATA__*/null;
 const KEY_STORE="rr_key_v1";
 const STATUSES=["New","Drafted","Sent","Follow-up 1","Follow-up 2","Replied","Interview","Rejected"];
-const SOURCES={linkedin:"LinkedIn",facebook:"Facebook",instagram:"Instagram",indeed:"Indeed",rozee:"Rozee & boards",careers:"Career pages",gmail:"Gmail alerts",quickadd:"Quick-add",intl:"International",remotive:"Remotive",remoteok:"RemoteOK",wwr:"We Work Remotely",himalayas:"Himalayas",jobicy:"Jobicy",workingnomads:"Working Nomads",ats:"Company careers",linkedin_ww:"LinkedIn Pakistan remote"};
+const SOURCES={linkedin:"LinkedIn",facebook:"Facebook",instagram:"Instagram",indeed:"Indeed",rozee:"Rozee & boards",careers:"Career pages",gmail:"Gmail alerts",quickadd:"Quick-add",intl:"International",remotive:"Remotive",remoteok:"RemoteOK",wwr:"We Work Remotely",himalayas:"Himalayas",jobicy:"Jobicy",workingnomads:"Working Nomads",ats:"Company careers",linkedin_ww:"LinkedIn Pakistan remote",google:"Google search",arbeitnow:"Arbeitnow",remotefirstjobs:"Remote First Jobs",rwfa:"Real Work From Anywhere","4dayweek":"4 Day Week",workew:"Workew",hn:"Hacker News hiring"};
 const ELIG={worldwide:"🟢 Worldwide",asia:"🟢 Pakistan / Asia",unclear:"Check",restricted:"Not open to Pakistan",local:"Pakistan"};
-const SRC_COLOR={linkedin:"#38BDF8",rozee:"#F472B6",indeed:"#818CF8",careers:"#A78BFA",gmail:"#F59E0B",quickadd:"#4ADE80"};
+const SRC_COLOR={linkedin:"#38BDF8",rozee:"#F472B6",indeed:"#818CF8",careers:"#A78BFA",gmail:"#F59E0B",quickadd:"#4ADE80",google:"#4285F4",hn:"#FF6600"};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>/^https?:\/\//i.test(u||"");
@@ -208,6 +208,8 @@ function gmailDraft(j){const u=encodeURIComponent(D.me.email);
 function readyJobs(){return D.jobs.filter(j=>j.draft_id&&!j.sent_at)}
 function region(j){return j.region||"local"}
 function sortJobs(a,b){return (!!a.budget_flag-!!b.budget_flag)||((b.match_score||0)-(a.match_score||0))||(b.id-a.id)}
+/* job tables: newest day first, best match first within a day */
+function sortNew(a,b){return (!!a.budget_flag-!!b.budget_flag)||String(b.created_at||"").slice(0,10).localeCompare(String(a.created_at||"").slice(0,10))||((b.match_score||0)-(a.match_score||0))||(b.id-a.id)}
 
 function show(){
   $("#lock").style.display="none"; $("#app").classList.add("on");
@@ -265,12 +267,12 @@ function render(v){
       <div class="tablewrap" id="tw"></div>`;
     const draw=()=>{
       const q=$("#fq").value.toLowerCase(), s=$("#fs").value, src=$("#fsrc").value, hide=$("#fhide")&&$("#fhide").checked;
-      const rows=D.jobs.filter(j=>region(j)===reg&&(!q||((j.company||"")+" "+(j.title||"")).toLowerCase().includes(q))&&(!s||j.status===s)&&(!src||j.source===src)&&!(hide&&j.eligibility==="unclear")).sort(sortJobs);
+      const rows=D.jobs.filter(j=>region(j)===reg&&(!q||((j.company||"")+" "+(j.title||"")).toLowerCase().includes(q))&&(!s||j.status===s)&&(!src||j.source===src)&&!(hide&&j.eligibility==="unclear")).sort(sortNew);
       $("#tw").innerHTML=`<table><thead><tr><th>Match</th><th>Found</th><th>Source</th><th>Company</th><th>Role</th><th>${reg==="local"?"City":"Who can apply"}</th><th>Email</th><th>Link</th><th>Status</th><th></th></tr></thead><tbody>
         ${rows.map(j=>`<tr data-job="${j.id}"><td>${scoreChip(j.match_score)}</td><td>${day(j.created_at)}</td>
           <td><span class="dot" style="background:${SRC_COLOR[j.source]||"var(--cyan)"}"></span>${esc(SOURCES[j.source]||j.source)}</td>
           <td>${esc(j.company||"")}</td>
-          <td class="role">${esc(j.title||"SEO role")}${j.budget_flag?'<span class="tag">Low budget</span>':""}${j.phone?" 💬":""}${j.notes&&j.notes.startsWith("Reposted")?'<span class="tag" style="background:rgba(167,139,250,.15);color:var(--violet)">Reposted</span>':""}${j.stage_reason&&j.stage!=="drafted"?`<small>${esc(j.stage_reason)}</small>`:""}</td>
+          <td class="role">${esc(j.title||"SEO role")}${j.budget_flag?'<span class="tag">Low budget</span>':""}${j.phone?" 💬":""}${j.cover_letter?'<span class="tag" style="white-space:nowrap;background:rgba(56,189,248,.15);color:var(--cyan)">Cover letter</span>':""}${j.notes&&j.notes.startsWith("Reposted")?'<span class="tag" style="background:rgba(167,139,250,.15);color:var(--violet)">Reposted</span>':""}${j.stage_reason&&j.stage!=="drafted"?`<small>${esc(j.stage_reason)}</small>`:""}</td>
           <td>${esc(reg==="local"?(j.city||""):(ELIG[j.eligibility]||"Check"))}</td>
           <td class="${["website","search"].includes(j.email_source)?"pink":""}">${esc(j.contact_email||"")||'<span class="hint">Apply on site</span>'}</td>
           <td>${safeUrl(j.url)?`<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">Open</a>`:""}</td>
@@ -324,10 +326,14 @@ function openJob(id){
         ${j.interview_at?`<div><b>Interview</b>${esc(new Date(j.interview_at).toLocaleString())}</div>`:""}
       </div>
       <div class="summary">${X.summary?X.summary.split(/\n\s*\n/).map(p=>`<p>${esc(p)}</p>`).join(""):""}</div>
+      ${j.cover_letter?`<div class="card"><b>✍️ Cover letter</b> <button class="btn small" id="copyCL" style="margin-left:8px">Copy</button>
+        <div class="hint">Paste it into the company's application form. Written only from your profile facts; read it once before using it.</div>
+        <div class="desc" style="white-space:pre-wrap;margin-top:8px">${esc(j.cover_letter)}</div></div>`:""}
       <details><summary>Original post</summary><div class="desc" style="margin-top:8px">${esc(j.text||"Not saved. Use Apply on site.")}</div></details>
       ${j.notes&&!j.notes.startsWith("Reposted")?`<div class="card"><b>Notes</b><div class="hint" style="white-space:pre-wrap">${esc(j.notes)}</div></div>`:""}
     </div>`;
   $("#dClose").onclick=closeDrawer;
+  const cl=$("#copyCL"); if(cl) cl.onclick=()=>navigator.clipboard.writeText(j.cover_letter).then(()=>{cl.textContent="Copied ✓"}).catch(()=>{cl.textContent="Select the text and copy"});
   $("#drawer").classList.add("on"); $("#shade").classList.add("on");
 }
 

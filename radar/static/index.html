@@ -358,7 +358,7 @@ tbody tr.low td{opacity:.62}
 
 <script>
 const STATUSES=["New","Drafted","Sent","Follow-up 1","Follow-up 2","Replied","Interview","Rejected"];
-const SOURCES={linkedin:"LinkedIn",facebook:"Facebook",instagram:"Instagram",indeed:"Indeed",rozee:"Rozee & boards",careers:"Career pages",gmail:"Gmail alerts",quickadd:"Quick-add",intl:"International",remotive:"Remotive",remoteok:"RemoteOK",wwr:"We Work Remotely",himalayas:"Himalayas",jobicy:"Jobicy",workingnomads:"Working Nomads",ats:"Company careers",linkedin_ww:"LinkedIn Pakistan remote"};
+const SOURCES={linkedin:"LinkedIn",facebook:"Facebook",instagram:"Instagram",indeed:"Indeed",rozee:"Rozee & boards",careers:"Career pages",gmail:"Gmail alerts",quickadd:"Quick-add",intl:"International",remotive:"Remotive",remoteok:"RemoteOK",wwr:"We Work Remotely",himalayas:"Himalayas",jobicy:"Jobicy",workingnomads:"Working Nomads",ats:"Company careers",linkedin_ww:"LinkedIn Pakistan remote",google:"Google search",arbeitnow:"Arbeitnow",remotefirstjobs:"Remote First Jobs",rwfa:"Real Work From Anywhere","4dayweek":"4 Day Week",workew:"Workew",hn:"Hacker News hiring"};
 const STATUS_WORD={idle:"Waiting",scraping:"Scanning",thinking:"Thinking",done:"Done",blocked:"Blocked",paused:"Paused",error:"Problem"};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -408,7 +408,7 @@ function renderJobs(){
   const q=$("#q").value.toLowerCase(), fs=$("#fStatus").value, fsrc=$("#fSource").value;
   const fe=$("#fElig").value;
   const rows0=JOBS.filter(j=>(!fe||REGION!=="international"||["worldwide","asia"].includes(j.eligibility))&&(!fs||j.status===fs)&&(!fsrc||j.source===fsrc)&&(!q||`${j.company} ${j.title}`.toLowerCase().includes(q)));
-  const rows=rows0.slice().sort((a,b)=>(a.budget_flag?1:0)-(b.budget_flag?1:0)||(b.match_score||0)-(a.match_score||0)||String(b.created_at).localeCompare(String(a.created_at)));
+  const rows=rows0.slice().sort((a,b)=>(a.budget_flag?1:0)-(b.budget_flag?1:0)||String(b.created_at).slice(0,10).localeCompare(String(a.created_at).slice(0,10))||(b.match_score||0)-(a.match_score||0)||String(b.created_at).localeCompare(String(a.created_at)));
   if(!rows.length){$("#jobs").innerHTML=`<tr><td colspan="10" class="empty">${JOBS.length?"No jobs match these filters.":(REGION==="international"?"No international jobs yet. Press Run now; this list fills as jobs open to Pakistan are found.":"No jobs yet. Press Run now, or paste a job into Quick-add.")}</td></tr>`;return}
   $("#jobs").innerHTML=rows.map(j=>`<tr class="${j.budget_flag?"low":""}">
     <td>${scoreChip(j.match_score)}</td>
@@ -425,7 +425,7 @@ function renderJobs(){
 }
 
 let REGION="local";
-const SRC_COLOR={linkedin:"#38BDF8",indeed:"#818CF8",rozee:"#F472B6",careers:"#FBBF24",gmail:"#F87171",quickadd:"#A3E635",remotive:"#2DD4BF",remoteok:"#FB923C",wwr:"#E879F9",himalayas:"#60A5FA",jobicy:"#34D399",workingnomads:"#FACC15",ats:"#C084FC",linkedin_ww:"#38BDF8"};
+const SRC_COLOR={linkedin:"#38BDF8",indeed:"#818CF8",rozee:"#F472B6",careers:"#FBBF24",gmail:"#F87171",quickadd:"#A3E635",remotive:"#2DD4BF",remoteok:"#FB923C",wwr:"#E879F9",himalayas:"#60A5FA",jobicy:"#34D399",workingnomads:"#FACC15",ats:"#C084FC",linkedin_ww:"#38BDF8",google:"#4285F4",arbeitnow:"#F97316",remotefirstjobs:"#22D3EE",rwfa:"#86EFAC","4dayweek":"#FDE047",workew:"#F0ABFC",hn:"#FF6600"};
 const srcTag=k=>`<span class="src" style="--c:${SRC_COLOR[k]||"#94A3B8"}">${esc(SOURCES[k]||k)}</span>`;
 const scoreChip=v=>v?`<span class="score ${v>=75?"hi":v>=50?"mid":"lo"}" title="How well this job fits your CV">${v}</span>`:'<span class="score lo">–</span>';
 const eligChip=e=>{const m={worldwide:["🟢 Worldwide","var(--green)"],asia:["Pakistan / Asia","var(--cyan)"],unclear:["Check","var(--amber)"]}[e]||["Check","var(--amber)"];return `<span style="color:${m[1]};font-weight:600;white-space:nowrap">${m[0]}</span>`};
@@ -640,6 +640,10 @@ async function openJob(id){
         ${j.region==="international"?`<div style="grid-column:1/-1"><b>Who can apply</b>${esc(ELIG[j.eligibility]||"Check the post")}</div>`:""}
       </div>
       <div class="summary">${D.summary?D.summary.split(/\n\s*\n/).map(p=>`<p>${esc(p)}</p>`).join(""):`<p class="hint">A clean summary appears for jobs found from now on.</p>`}</div>
+      <div class="box"><h4>✍️ Cover letter</h4>
+        ${j.cover_letter?`<div class="desc" style="white-space:pre-wrap">${esc(j.cover_letter)}</div>`:`<span class="hint" style="margin:0">For applying on the company's site: a short letter written only from your profile facts.</span>`}
+        <div class="row2">${j.cover_letter?'<button class="btn ghost" id="jCopyCL">Copy</button>':""}<button class="btn ghost" id="jWriteCL">${j.cover_letter?"Write again":"Write cover letter"}</button></div>
+        <span id="jCLNote" class="hint" style="margin:0"></span></div>
       <details class="orig"><summary>Original post</summary><div class="desc" style="margin-top:8px">${esc(j.text||"Not saved. Use Apply on site.")}</div></details>
       <div class="box"><h4>Interview and notes</h4>
         <div class="row2"><input type="datetime-local" id="jIv" value="${esc((j.interview_at||"").slice(0,16))}" aria-label="Interview date and time"><button class="btn ghost" id="jSaveNotes">Save</button></div>
@@ -648,6 +652,9 @@ async function openJob(id){
       <button class="btn danger" id="jBlock" style="align-self:flex-start">Never show ${esc(j.company||"this company")} again</button>
     </div>`;
   $("#dClose").onclick=closeDrawer;
+  if($("#jCopyCL"))$("#jCopyCL").onclick=()=>navigator.clipboard.writeText(j.cover_letter).then(()=>$("#jCLNote").textContent="Copied. Paste it into their application form.");
+  $("#jWriteCL").onclick=async()=>{const b=$("#jWriteCL");b.disabled=true;$("#jCLNote").textContent="Writing… about 20 seconds.";
+    try{await post(`/api/jobs/${id}/cover-letter`);openJob(id);loadJobs()}catch(e){$("#jCLNote").textContent=e.message;b.disabled=false}};
   if($("#jFindPhone"))$("#jFindPhone").onclick=async()=>{$("#jPhoneNote").textContent="Searching…";$("#jFindPhone").disabled=true;
     try{const r=await post(`/api/jobs/${id}/find-phone`);if(r.phone){openJob(id);loadJobs()}else{$("#jPhoneNote").textContent=r.message}}
     catch(e){$("#jPhoneNote").textContent=e.message}$("#jFindPhone").disabled=false};
