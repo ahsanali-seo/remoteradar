@@ -24,7 +24,7 @@ JOB_FIELDS = ["id", "created_at", "source", "url", "title", "company", "city", "
               "contact_email", "email_source", "company_website", "hiring_name", "status", "stage",
               "stage_reason", "draft_id", "subject", "sent_at", "followup1_at", "followup2_at", "replied_at",
               "region", "match_score", "match_reason", "eligibility", "interview_at", "notes", "phone",
-              "phone_source", "budget_flag"]
+              "phone_source", "budget_flag", "cover_letter"]
 
 
 def _actions_url() -> str:

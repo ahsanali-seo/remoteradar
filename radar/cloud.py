@@ -38,7 +38,7 @@ from .config import settings
 
 # Files kept in the private dataset, relative to the app folder.
 DATA_FILES = ["data/radar.sqlite3", "data/auth.json", "data/ats_cache.json",
-              "data/last_full_run.txt", "data/linkedin_last_run.txt"]
+              "data/last_full_run.txt", "data/linkedin_last_run.txt", "data/google_last_run.txt"]
 PROFILE_GLOBS = ["profile/*.md", "profile/*.pdf", "profile/*.txt",
                  "profile/photo.*"]
 

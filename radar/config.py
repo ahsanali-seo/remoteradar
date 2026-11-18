@@ -88,6 +88,12 @@ class Settings:
     # One Gmail draft listing every job after each run. Off: the dashboard shows them all.
     summary_draft: bool = _b("SUMMARY_DRAFT", False)
     international: bool = _b("INTERNATIONAL", True)
+    # Gemini searches Google for LinkedIn/Indeed/Rozee/company posts (at most every GOOGLE_SEARCH_EVERY_HOURS)
+    google_search: bool = _b("GOOGLE_SEARCH", True)
+    # Cover letter for good "apply on site" jobs (copy it into the company's form)
+    cover_letters: bool = _b("COVER_LETTERS", True)
+    cover_letter_min_score: int = _i("COVER_LETTER_MIN_SCORE", 70)
+    cover_letter_daily: int = _i("COVER_LETTER_DAILY", 10)
     min_salary_pkr: int = _i("MIN_SALARY_PKR", 100000)
     notify_score: int = _i("NOTIFY_SCORE", 75)
     cv_link: str = os.environ.get("CV_LINK", "")
@@ -116,6 +122,7 @@ PLATFORMS = {
     "rozee": "Rozee & boards",
     "careers": "Career pages",
     "gmail": "Gmail alerts",
+    "google": "Google search",
     "intl": "International",
     "quickadd": "Quick-add",
 }

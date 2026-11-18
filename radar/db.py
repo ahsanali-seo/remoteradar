@@ -129,7 +129,7 @@ def init() -> None:
                          ("found_emails", "TEXT"), ("details", "TEXT"), ("match_score", "INTEGER"),
                          ("match_reason", "TEXT"), ("eligibility", "TEXT"), ("interview_at", "TEXT"),
                          ("notes", "TEXT"), ("phone", "TEXT"), ("phone_source", "TEXT"),
-                         ("budget_flag", "TEXT")):
+                         ("budget_flag", "TEXT"), ("cover_letter", "TEXT")):
             if col not in cols:
                 con.execute(f"ALTER TABLE jobs ADD COLUMN {col} {ddl}")
         # Clean up older rows: 'info@www.site.com' and job boards saved as the company name.

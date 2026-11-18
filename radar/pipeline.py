@@ -193,6 +193,8 @@ class Pipeline:
             db.update_job(job_id, stage="no_email", stage_reason=why)
             s.apply_jobs.append({"title": title, "company": company, "url": job.url})
             db.log(job.source, f"New job without email: {title} at {company} (apply on site)")
+            if not flag and (r.match_score or 0) >= settings.cover_letter_min_score:
+                self._cover_letter(job, job_id, title, company, r)
             return "no_email"
 
         if flag:
@@ -214,6 +216,46 @@ class Pipeline:
             return "capped"
 
         return self._write_and_draft(job, job_id, title, company, r)
+
+    def _cover_letter(self, job, job_id, title, company, r, force: bool = False) -> str:
+        """A cover letter to paste into the company's own application form. Facts from profile.md only;
+        a letter with a number that is not in the profile, the post or the company site is thrown away."""
+        if not settings.cover_letters and not force:
+            return ""
+        if not force and db.counter("cover_letters") >= settings.cover_letter_daily:
+            return ""
+        if self._profile is None:
+            try:
+                self._profile = load_profile()
+            except RuntimeError as e:
+                self._profile = e
+        if isinstance(self._profile, Exception):
+            return ""
+        profile, _template = self._profile
+        site_url = r.company_website or job.extra.get("website", "")
+        try:
+            site = self.site_fetcher(site_url) if site_url else ""
+        except Exception:
+            site = ""
+        info = {"title": title, "company": company, "hiring_name": r.hiring_name, "text": job.text}
+        db.set_agent(job.source, "thinking", f"Writing cover letter for {company}")
+        letter = ""
+        for _ in range(2):
+            try:
+                letter = self.claude.cover_letter(profile, info, site)
+            except Exception as e:
+                db.log(job.source, f"Cover letter for {company} failed: {str(e)[:120]}", "warn")
+                return ""
+            if letter and not invented_numbers(letter, profile, job.blob(), site) and not leftover_placeholders(letter):
+                break
+            letter = ""
+        if not letter:
+            db.log(job.source, f"Cover letter for {company} skipped: it failed the facts check", "warn")
+            return ""
+        db.bump("cover_letters")
+        db.update_job(job_id, cover_letter=letter)
+        db.log(job.source, f"Cover letter ready for {company} ({title}): open the job and press Copy")
+        return letter
 
     def _find_email(self, job, job_id, company, r) -> None:
         """No email in the post: look on the company's website, finding the website by search if needed."""
@@ -299,6 +341,9 @@ def build_scrapers(claude=None):
     if settings.social_login:
         out += [FacebookScraper(), InstagramScraper(claude)]
     out += [BoardsScraper("indeed"), BoardsScraper("rozee"), CareersScraper()]
+    if settings.google_search:
+        from .scrapers.google import GoogleJobsScraper
+        out.append(GoogleJobsScraper(claude))
     if settings.international:
         from .scrapers.international import InternationalScraper
         out.append(InternationalScraper())
@@ -525,6 +570,27 @@ def draft_for_job(job_id: int, claude=None, gmail=None) -> dict:
     if stage != "drafted":
         raise RuntimeError(after.get("stage_reason") or "Could not write the email")
     return {"draft_id": after["draft_id"], "existing": False}
+
+
+def cover_letter_for_job(job_id: int, claude=None) -> dict:
+    """Write (or rewrite) the cover letter for a saved job. Used by the dashboard's "Cover letter" button."""
+    job = db.get_job(job_id)
+    if not job:
+        raise ValueError("No such job")
+    if claude is None:
+        claude, _ = make_clients()
+    if claude is None:
+        raise RuntimeError("No AI key in .env")
+    raw = RawJob(source=job["source"], url=job.get("url") or "", title=job.get("title") or "",
+                 company=job.get("company") or "", location=job.get("location") or "",
+                 text=job.get("text") or "", author=job.get("author") or "",
+                 extra={"website": job.get("company_website") or ""})
+    letter = Pipeline(claude, _NoGmail())._cover_letter(
+        raw, job_id, job.get("title") or "SEO role", job.get("company") or "the company",
+        _Contact("", job.get("company_website") or "", job.get("hiring_name") or ""), force=True)
+    if not letter:
+        raise RuntimeError("Could not write a cover letter that passes the facts check. Try again, or check profile.md.")
+    return {"cover_letter": letter}
 
 
 def _where(job: dict) -> str:

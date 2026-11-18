@@ -227,6 +227,17 @@ def job_draft(job_id: int):
         raise HTTPException(502, str(e)[:300])
 
 
+@app.post("/api/jobs/{job_id}/cover-letter")
+def job_cover_letter(job_id: int):
+    from .pipeline import cover_letter_for_job
+    try:
+        return cover_letter_for_job(job_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, str(e)[:300])
+
+
 class StatusIn(BaseModel):
     status: str
 
