@@ -23,3 +23,14 @@ Run tests: `pip install -r requirements.txt && pytest`
   emails. Shown with a Copy button on both dashboards; the Mac dashboard can also write one on demand.
   Off: `COVER_LETTERS=false`.
 - Job tables list the newest jobs first (best match first within a day).
+
+## v6.1 (18 Nov 2026)
+
+- Gemini limits: a 429 now says which quota Google reported (per day or per minute). A daily limit stops
+  that model for the rest of the run at once instead of retrying for minutes.
+- Google search tries a second model when the first one's free search limit is used up
+  (`GEMINI_SEARCH_MODEL`, default the check model; `GEMINI_SEARCH_FALLBACK_MODEL`, default the write model).
+  If every search fails, it runs again on the next run instead of waiting 10 hours.
+- Jobs whose AI check failed on a Gemini limit or a busy server are checked again on the next run (up to 15).
+- A cover letter that is not written always says why in Latest activity (profile not ready, daily limit, off).
+- Each run ends with "AI calls today: check N, search N, write N".
