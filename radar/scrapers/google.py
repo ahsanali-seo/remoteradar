@@ -128,14 +128,16 @@ class GoogleJobsScraper(Scraper):
             self.client = httpx.Client(timeout=20, follow_redirects=True, headers={"User-Agent": UA})
         days = settings.max_age_days
         jobs: list[RawJob] = []
+        worked = 0
         for region, ask in SEARCHES.items():
             self.ai.last_sources = []
             try:
                 out = self.ai._call("search", self.ai.check_model, "You find real, current job postings.",
                                     ask.format(days=days) + ANSWER, 4000)
             except Exception as e:
-                log(f"Google search ({region}) failed: {str(e)[:120]}")
+                log(f"Google search ({region}) failed: {str(e)[:400]}")
                 continue
+            worked += 1
             sources = list(getattr(self.ai, "last_sources", []) or [])
             found = parse_answer(out, sources, days * 2 if region == "international" else days)
             for j in found:
@@ -149,6 +151,8 @@ class GoogleJobsScraper(Scraper):
                                    extra={"region": reg, "where": f"a Google search ({_host(j['url'])})"}))
             log(f"Google search ({region}): {len(found)} SEO posts with checked links "
                 f"(Google returned {len(sources)} sites)")
+        if not worked:
+            return jobs           # nothing searched: try again on the next run instead of waiting 10 hours
         try:
             self.stamp.parent.mkdir(parents=True, exist_ok=True)
             self.stamp.write_text(str(time.time()))
