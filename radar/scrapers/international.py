@@ -1,7 +1,8 @@
 """International remote jobs, no login anywhere.
 
 1. Remote job sites with public feeds: Remotive, RemoteOK, We Work Remotely, Himalayas, Jobicy,
-   Working Nomads. Each feed's parser is a pure function so tests can run on sample data, and
+   Working Nomads, Arbeitnow, Remote First Jobs, Real Work From Anywhere, 4 Day Week, Workew
+   and the Hacker News "Who is hiring?" thread. Each feed's parser is a pure function so tests can run on sample data, and
    each feed fails on its own without stopping the others.
 2. Company career boards (sources/companies_intl.csv). Most companies post jobs through an
    applicant-tracking system with a public job list: Greenhouse, Lever, Ashby, Workable or
@@ -40,10 +41,19 @@ FEEDS = {   # several URLs per site: SEO search + the wider marketing list (titl
     "jobicy": ["https://jobicy.com/api/v2/remote-jobs?count=100&tag=seo",
                "https://jobicy.com/api/v2/remote-jobs?count=100&industry=marketing"],
     "workingnomads": ["https://www.workingnomads.com/api/exposed_jobs/"],
+    # Added in v6 (ideas from Ahsan483/job-hunter, MIT licence)
+    "arbeitnow": [f"https://www.arbeitnow.com/api/job-board-api?page={n}" for n in (1, 2, 3)],
+    "remotefirstjobs": ["https://remotefirstjobs.com/rss/jobs.rss"],
+    "rwfa": ["https://www.realworkfromanywhere.com/rss.xml"],
+    "4dayweek": [f"https://4dayweek.io/api?page={n}" for n in (1, 2, 3)],
+    "workew": ["https://workew.com/feed/?post_type=job_listing"],
 }
+RSS_FEEDS = {"wwr", "remotefirstjobs", "rwfa", "workew"}
 FEED_NAMES = {"remotive": "Remotive", "remoteok": "RemoteOK", "wwr": "We Work Remotely",
               "himalayas": "Himalayas", "jobicy": "Jobicy", "workingnomads": "Working Nomads",
-              "ats": "Company careers", "linkedin_ww": "LinkedIn Pakistan remote"}
+              "arbeitnow": "Arbeitnow", "remotefirstjobs": "Remote First Jobs",
+              "rwfa": "Real Work From Anywhere", "4dayweek": "4 Day Week", "workew": "Workew",
+              "hn": "Hacker News hiring", "ats": "Company careers", "linkedin_ww": "LinkedIn Pakistan remote"}
 
 
 # ---------------- helpers ----------------
@@ -190,8 +200,98 @@ def parse_workingnomads(data) -> list[RawJob]:
     return out
 
 
+def _rss(xml_text: str) -> list[dict]:
+    """Each <item> of an RSS feed as {tag: text}; namespaced tags keep their local name."""
+    out = []
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return out
+    for it in root.iter("item"):
+        d = {}
+        for child in it:
+            tag = child.tag.rsplit("}", 1)[-1]
+            d.setdefault(tag, (child.text or "").strip())
+        out.append(d)
+    return out
+
+
+def _title_at(s: str) -> tuple[str, str]:
+    """'SEO Manager at Acme' -> ('SEO Manager', 'Acme')."""
+    title, at, company = (s or "").rpartition(" at ")
+    return (title.strip(), company.strip()) if at else ((s or "").strip(), "")
+
+
+def parse_arbeitnow(data) -> list[RawJob]:
+    out = []
+    for j in (data or {}).get("data", []):
+        if not j.get("remote"):
+            continue                                   # office jobs in Germany: not for us
+        out.append(_job("arbeitnow", j.get("title"), j.get("company_name"), j.get("url"),
+                        j.get("location") or "Remote", _text(j.get("description")),
+                        _when(j.get("created_at")), "", ", ".join(j.get("job_types") or []), j.get("tags")))
+    return out
+
+
+
+def _parse_rss_jobs(source: str, xml_text: str, location: str) -> list[RawJob]:
+    out = []
+    for it in _rss(xml_text):
+        title, company = _title_at(it.get("title", ""))
+        link = it.get("link", "")
+        if source == "workew" and not company:        # link ends in <title>-<company>
+            last = link.rstrip("/").rsplit("/", 1)[-1]
+            t_slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+            company = last.removeprefix(t_slug + "-").replace("-", " ").title() if last.startswith(t_slug) else ""
+        text = _text(it.get("encoded") or it.get("description", ""))
+        if source == "workew":
+            text = text.split("The post ")[0]
+        out.append(_job(source, title, company, link, location, text, _when(it.get("pubDate"))))
+    return out
+
+
+def parse_remotefirstjobs(xml_text: str) -> list[RawJob]:
+    return _parse_rss_jobs("remotefirstjobs", xml_text, "Remote")
+
+
+def parse_rwfa(xml_text: str) -> list[RawJob]:
+    """Real Work From Anywhere lists only jobs you can do from any country."""
+    return _parse_rss_jobs("rwfa", xml_text, "Anywhere (work from any country)")
+
+
+def parse_workew(xml_text: str) -> list[RawJob]:
+    return _parse_rss_jobs("workew", xml_text, "Remote")
+
+
+def parse_4dayweek(data) -> list[RawJob]:
+    out = []
+    for j in (data or {}).get("jobs", []):
+        if str(j.get("is_remote")).lower() != "true":
+            continue
+        out.append(_job("4dayweek", j.get("title"), j.get("company_name"), j.get("url"),
+                        j.get("location_original") or j.get("location_country") or "Remote",
+                        _text(j.get("description")), _when(j.get("posted")), "", j.get("level", ""),
+                        [j.get("category", "")]))
+    return out
+
+
+def parse_hn_comment(h: dict) -> RawJob | None:
+    """One top-level comment of 'Ask HN: Who is hiring?': 'Company | Role | Remote | ...' on line 1."""
+    t = _text(h.get("comment_text") or "")
+    if not t:
+        return None
+    first = t.split("\n")[0]
+    parts = [p.strip() for p in first.split("|") if p.strip()]
+    company = parts[0][:80] if parts else ""
+    role = next((p for p in parts[1:] if is_seo(p)), "") or first[:140]
+    return _job("hn", role, company, f"https://news.ycombinator.com/item?id={h.get('objectID')}",
+                first[:200], t, _when(h.get("created_at")))
+
+
 PARSERS = {"remotive": parse_remotive, "remoteok": parse_remoteok, "wwr": parse_wwr,
-           "himalayas": parse_himalayas, "jobicy": parse_jobicy, "workingnomads": parse_workingnomads}
+           "himalayas": parse_himalayas, "jobicy": parse_jobicy, "workingnomads": parse_workingnomads,
+           "arbeitnow": parse_arbeitnow, "remotefirstjobs": parse_remotefirstjobs,
+           "rwfa": parse_rwfa, "4dayweek": parse_4dayweek, "workew": parse_workew}
 
 
 # ---------------- company boards (ATS) ----------------
@@ -294,6 +394,34 @@ class InternationalScraper(Scraper):
             return None
         return r
 
+    def _hn(self, log) -> list[RawJob]:
+        """SEO roles in this month's and last month's 'Ask HN: Who is hiring?' threads."""
+        from ..filters import intl_filter
+        try:
+            r = self._get("https://hn.algolia.com/api/v1/search_by_date?tags=story,author_whoishiring"
+                          "&query=who%20is%20hiring")
+            stories = [h for h in (r.json().get("hits", []) if r is not None else [])
+                       if (h.get("title") or "").startswith("Ask HN: Who is hiring?")][:2]
+            found, seen = [], set()
+            for st in stories:
+                sid = st["objectID"]
+                for term in ("seo", "search engine optimization"):
+                    c = self._get(f"https://hn.algolia.com/api/v1/search?tags=comment,story_{sid}"
+                                  f"&query={term.replace(' ', '%20')}&hitsPerPage=100")
+                    for h in (c.json().get("hits", []) if c is not None else []):
+                        if h.get("objectID") in seen or str(h.get("parent_id")) != str(sid):
+                            continue
+                        seen.add(h.get("objectID"))
+                        j = parse_hn_comment(h)
+                        if j and is_seo(j.title):
+                            found.append(j)
+            open_ = sum(1 for j in found if intl_filter(j)[0])
+            log(f"{FEED_NAMES['hn']}: {len(found)} SEO jobs, {open_} open to Pakistan")
+            return found
+        except Exception as e:
+            log(f"{FEED_NAMES['hn']} failed: {type(e).__name__}")
+            return []
+
     def _cache(self) -> dict:
         try:
             return json.loads(self.cache_path.read_text())
@@ -316,7 +444,7 @@ class InternationalScraper(Scraper):
                     if r is None:
                         continue
                     reached = True
-                    data = r.text if key == "wwr" else r.json()
+                    data = r.text if key in RSS_FEEDS else r.json()
                     for j in PARSERS[key](data):
                         if is_seo(j.title) and j.url not in seen_urls:
                             seen_urls.add(j.url)
@@ -329,6 +457,7 @@ class InternationalScraper(Scraper):
             open_ = sum(1 for j in found if intl_filter(j)[0])
             jobs += found
             log(f"{FEED_NAMES[key]}: {len(found)} SEO jobs, {open_} open to Pakistan")
+        jobs += self._hn(log)
         # 2. company boards
         cache = self._cache()
         for row in read_companies():
