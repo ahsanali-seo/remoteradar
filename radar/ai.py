@@ -289,10 +289,44 @@ import time  # noqa: E402
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
+class GeminiQuota(RuntimeError):
+    """A Gemini free-tier limit was hit (429)."""
+
+
+def quota_info(r) -> tuple[str, str, float]:
+    """Read Google's 429 answer: ("day" | "minute" | "", which quota, seconds to wait)."""
+    try:
+        err = r.json().get("error") or {}
+    except Exception:
+        err = {}
+    if not isinstance(err, dict):
+        err = {"message": str(err)}
+    ids, delay = [], 0.0
+    for d in err.get("details") or []:
+        if not isinstance(d, dict):
+            continue
+        for v in d.get("violations") or []:
+            q = v.get("quotaId") or v.get("quotaMetric") or ""
+            if q and q not in ids:
+                ids.append(q)
+        if d.get("retryDelay"):
+            try:
+                delay = float(str(d["retryDelay"]).rstrip("s"))
+            except ValueError:
+                pass
+    joined = " ".join(ids).lower()
+    kind = "day" if "perday" in joined else ("minute" if "perminute" in joined else "")
+    if not kind and re.search(r"(?i)per day|daily", str(err.get("message", ""))):
+        kind = "day"
+    detail = ", ".join(ids) or re.sub(r"\s+", " ", str(err.get("message", "")))
+    return kind, detail[:220], delay
+
+
 class Gemini(Claude):
     """Drop-in replacement for Claude. Free tier: the cost counter stays at $0."""
     can_search = True          # Google Search tool (used by scrapers/google.py)
     last_sources: list = []
+    exhausted: dict            # (model, search?) -> why it is used up for this run
 
     # Free tier allows only a few requests per minute, so space calls out.
     min_gap = float(os.environ.get("GEMINI_MIN_SECONDS_BETWEEN_CALLS", "7"))
@@ -306,6 +340,17 @@ class Gemini(Claude):
         self.check_model = os.environ.get("GEMINI_CHECK_MODEL", "gemini-flash-lite-latest")
         self.write_model = os.environ.get("GEMINI_WRITE_MODEL", "gemini-flash-latest")
         self._last = 0.0
+        self.exhausted = {}
+
+    def _give_up(self, key, msg: str):
+        """Remember that this model (or its Google Search) is used up, say so once, and stop."""
+        if key not in self.exhausted:
+            self.exhausted[key] = msg
+            try:
+                db.log(None, msg, "warn")
+            except Exception:
+                pass
+        raise GeminiQuota(msg)
 
     @staticmethod
     def _parts(content) -> list[dict]:
@@ -321,13 +366,30 @@ class Gemini(Claude):
         return parts
 
     def _call(self, purpose: str, model: str, system, content, max_tokens: int) -> str:
-        gmodel = self.write_model if purpose == "write" else self.check_model
+        if purpose == "search":
+            # Google Search has its own small free limit per model: when one model is used up for
+            # the day, try the next one instead of failing (GEMINI_SEARCH_MODEL / ..._FALLBACK_MODEL).
+            first = os.environ.get("GEMINI_SEARCH_MODEL", "") or self.check_model
+            backup = os.environ.get("GEMINI_SEARCH_FALLBACK_MODEL", self.write_model)
+            models = list(dict.fromkeys(m for m in (first, backup) if m))
+        else:
+            models = [self.write_model if purpose == "write" else self.check_model]
+        last: Exception | None = None
+        for gmodel in models:
+            try:
+                return self._call_model(gmodel, purpose, system, content)
+            except GeminiQuota as e:
+                last = e
+        raise last or RuntimeError("Gemini: no model to call")
+
+    def _call_model(self, gmodel: str, purpose: str, system, content) -> str:
+        key = (gmodel, purpose == "search")
+        if key in self.exhausted:
+            raise GeminiQuota(self.exhausted[key])
         sys_text = system if isinstance(system, str) else "\n\n".join(b["text"] for b in system)
         body = {
             "systemInstruction": {"parts": [{"text": sys_text}]},
             "contents": [{"role": "user", "parts": self._parts(content)}],
-            # Newer Gemini models "think" before answering and that uses output tokens,
-            # so leave plenty of room. It's free, and replies stay short anyway.
             # Thinking eats output tokens; cap it and leave plenty of room for the answer.
             "generationConfig": {"maxOutputTokens": 8192, "temperature": 0.4,
                                  "thinkingConfig": {"thinkingBudget": 512}},
@@ -337,6 +399,7 @@ class Gemini(Claude):
         if purpose == "search":
             body["tools"] = [{"google_search": {}}]
 
+        what = f"{gmodel}{' + Google Search' if purpose == 'search' else ''}"
         for attempt in range(4):
             wait = self.min_gap - (time.time() - self._last)
             if wait > 0:
@@ -355,15 +418,22 @@ class Gemini(Claude):
             if r.status_code == 400 and "thinking" in r.text.lower() and "thinkingConfig" in body["generationConfig"]:
                 body["generationConfig"].pop("thinkingConfig")       # model doesn't support the setting
                 continue
-            if r.status_code in (429, 500, 503) and attempt < 3:
-                # Free-tier minute limit or a busy server: back off and retry.
-                time.sleep(20 * (attempt + 1))
+            if r.status_code == 429:
+                kind, detail, delay = quota_info(r)
+                if kind == "day":
+                    # Waiting will not help until tomorrow: stop asking this model for the rest of the run.
+                    self._give_up(key, f"Gemini 429: daily limit reached for {what} ({detail}); "
+                                       "retried on the next run")
+                if attempt < 3:
+                    time.sleep(min(65.0, max(delay, 20.0 * (attempt + 1))))   # minute limit: wait it out
+                    continue
+                self._give_up(key, f"Gemini 429: still limited after 4 tries for {what} (daily limit or "
+                                   f"per-minute limit; Google said: {detail or 'no details'}); retried on the next run")
+            if r.status_code in (500, 503) and attempt < 3:
+                time.sleep(20 * (attempt + 1))                       # busy server: back off and retry
                 continue
             if r.status_code >= 400:
-                msg = r.text[:300]
-                if r.status_code == 429:
-                    msg = "Gemini free daily limit reached; remaining jobs are retried next run"
-                raise RuntimeError(f"Gemini {r.status_code}: {msg}")
+                raise RuntimeError(f"Gemini {r.status_code}: {r.text[:300]}")
             break
 
         data = r.json()

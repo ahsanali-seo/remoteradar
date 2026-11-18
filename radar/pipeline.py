@@ -63,6 +63,13 @@ class Pipeline:
         self.site_fetcher = site_fetcher
         self.stats = RunStats()
         self._profile: tuple[str, str] | None = None
+        self._said: set[str] = set()
+
+    def _say_once(self, platform, msg: str, level: str = "warn") -> None:
+        """Log a reason only once per run, so a skipped step never stays silent."""
+        if msg not in self._said:
+            self._said.add(msg)
+            db.log(platform, msg, level)
 
     # ------- one job through the whole funnel -------
     def process(self, job: RawJob) -> str:
@@ -221,15 +228,21 @@ class Pipeline:
         """A cover letter to paste into the company's own application form. Facts from profile.md only;
         a letter with a number that is not in the profile, the post or the company site is thrown away."""
         if not settings.cover_letters and not force:
+            self._say_once(None, "Cover letters are off (COVER_LETTERS=false)", "info")
             return ""
         if not force and db.counter("cover_letters") >= settings.cover_letter_daily:
+            self._say_once(None, f"Cover letters: daily limit of {settings.cover_letter_daily} reached; "
+                                 "use the Cover letter button for more", "info")
             return ""
         if self._profile is None:
             try:
                 self._profile = load_profile()
-            except RuntimeError as e:
+            except Exception as e:
                 self._profile = e
         if isinstance(self._profile, Exception):
+            self._say_once(None, f"No cover letter for {company}: profile not ready ({str(self._profile)[:200]})")
+            if force:
+                raise RuntimeError(f"Profile not ready: {str(self._profile)[:200]}")
             return ""
         profile, _template = self._profile
         site_url = r.company_website or job.extra.get("website", "")
@@ -250,7 +263,7 @@ class Pipeline:
                 break
             letter = ""
         if not letter:
-            db.log(job.source, f"Cover letter for {company} skipped: it failed the facts check", "warn")
+            db.log(job.source, f"Cover letter for {company} skipped: it failed the facts check twice", "warn")
             return ""
         db.bump("cover_letters")
         db.update_job(job_id, cover_letter=letter)
@@ -468,6 +481,9 @@ def run(only: list[str] | None = None) -> RunStats:
                 db.log(sc.platform, f"{sc.name} failed: {type(e).__name__}: {e}", "warn")
                 traceback.print_exc()
 
+        if claude is not None:
+            retry_ai_errors(pipe)
+
         # Daily summary to myself
         if gmail is not None and settings.summary_draft:
             from .summary import send_summary_draft
@@ -480,9 +496,54 @@ def run(only: list[str] | None = None) -> RunStats:
         msg = (f"Run finished: {st.scanned} scanned, {st.new} new, {st.duplicates} duplicates, "
                f"{st.drafted} drafts, {st.no_email} apply-on-site")
         db.log(None, msg)
+        use = ai_use_today()
+        if use:
+            db.log(None, f"AI calls today: {use}")
         with db.connect() as con:
             con.execute("UPDATE runs SET finished_at=?, summary=? WHERE id=?", (db.iso(), msg, run_id))
         return st
+
+
+AI_HICCUP = re.compile(r"Gemini (429|500|503)|timed out|AI reply was cut off", re.I)
+
+
+def retry_ai_errors(pipe: Pipeline, days: int = 3, limit: int = 15) -> int:
+    """Jobs whose AI check failed on a Gemini limit or a busy server are tried again
+    (their fingerprint is already saved, so the scrapers would never bring them back)."""
+    since = db.iso(db.now() - __import__("datetime").timedelta(days=days))
+    todo = [j for j in db.jobs_where("stage='error' AND created_at >= ?", (since,))
+            if AI_HICCUP.search(j.get("stage_reason") or "")][:limit]
+    done = 0
+    for j in todo:
+        raw = RawJob(source=j["source"], url=j.get("url") or "", title=j.get("title") or "",
+                     company=j.get("company") or "", location=j.get("location") or "",
+                     text=j.get("text") or "", author=j.get("author") or "",
+                     extra={"region": j.get("region") or "local", "where": _where(j),
+                            "website": j.get("company_website") or "", "ats": j["source"] == "ats"})
+        try:
+            stage = pipe._ai_stages(raw, j["id"])
+        except Exception as e:
+            db.update_job(j["id"], stage="error", stage_reason=f"{type(e).__name__}: {e}"[:300])
+            if "429" in str(e):
+                break                                  # still limited: the rest wait for the next run
+            continue
+        done += 1
+        db.log(j["source"], f"Re-checked after an earlier AI error: {j.get('title') or 'job'} "
+                            f"at {j.get('company') or '?'} -> {stage}")
+    return done
+
+
+def ai_use_today() -> str:
+    """'check 31, search 6, write 2': how many AI calls today, to see what uses the free limit."""
+    start = __import__("datetime").datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    try:
+        with db.connect() as con:
+            rows = con.execute("SELECT purpose, COUNT(*) n FROM ai_calls WHERE ts >= ? GROUP BY purpose "
+                               "ORDER BY n DESC", (db.iso(start.astimezone(__import__("datetime").timezone.utc)),)
+                               ).fetchall()
+    except Exception:
+        return ""
+    return ", ".join(f"{r['purpose']} {r['n']}" for r in rows)
 
 
 def process_quickadd(text: str) -> str:
